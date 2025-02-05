@@ -11,7 +11,7 @@ import {
   SortableContext,
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
-import Tile from "./Tile"; //
+import Tile from "./Tile";
 
 const BingoBoard = () => {
   const [rows, setRows] = useState(5);
@@ -37,8 +37,16 @@ const BingoBoard = () => {
     setOrder((items) => arrayMove(items, oldIndex, newIndex));
   };
 
+  const gridStyle = {
+    gridTemplateRows: `repeat(${rows}, 1fr)`,
+    gridTemplateColumns: `repeat(${columns}, 1fr)`,
+  };
+
   return (
-    <div data-testid="bingo-board" className="p-4">
+    <div
+      data-testid="bingo-board"
+      className="p-4 text-center flex flex-col items-center"
+    >
       <h1 className="text-xl font-bold mb-4">Bingo Board</h1>
 
       <div className="controls flex space-x-4 mb-4">
@@ -70,29 +78,29 @@ const BingoBoard = () => {
         </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext
-          items={order.map(String)}
-          strategy={rectSortingStrategy}
+      {/* Board container with border, background and inner padding for gap */}
+      <div className="border-2 border-gray-400 bg-gray-100 p-2">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
         >
-          <div
-            data-testid="bingo-grid"
-            className="grid gap-2"
-            style={{
-              gridTemplateRows: `repeat(${rows}, 1fr)`,
-              gridTemplateColumns: `repeat(${columns}, 1fr)`,
-            }}
+          <SortableContext
+            items={order.map(String)}
+            strategy={rectSortingStrategy}
           >
-            {order.map((cell) => (
-              <Tile key={cell} id={cell} />
-            ))}
-          </div>
-        </SortableContext>
-      </DndContext>
+            <div
+              data-testid="bingo-grid"
+              className="grid gap-1"
+              style={gridStyle}
+            >
+              {order.map((cell) => (
+                <Tile key={cell} id={cell} />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      </div>
     </div>
   );
 };
