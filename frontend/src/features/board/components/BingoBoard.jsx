@@ -9,58 +9,29 @@ import {
 import {
   arrayMove,
   SortableContext,
-  useSortable,
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-
-// A sortable tile component using dnd-kit's hook
-function SortableItem({ id }) {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: id.toString() });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      data-testid="bingo-cell"
-      className="border border-black bg-white flex items-center justify-center p-4"
-    >
-      {id}
-    </div>
-  );
-}
+import Tile from "./Tile"; //
 
 const BingoBoard = () => {
   const [rows, setRows] = useState(5);
   const [columns, setColumns] = useState(5);
   const [order, setOrder] = useState([]);
 
-  // When rows/columns change, reset the tile order
   useEffect(() => {
     const totalCells = rows * columns;
     setOrder(Array.from({ length: totalCells }, (_, index) => index + 1));
   }, [rows, columns]);
 
-  // Setup sensors for pointer input with a slight activation delay
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 5 },
     })
   );
 
-  // When a drag ends, update the order
   const handleDragEnd = (event) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-
     const oldIndex = order.indexOf(Number(active.id));
     const newIndex = order.indexOf(Number(over.id));
     setOrder((items) => arrayMove(items, oldIndex, newIndex));
@@ -117,7 +88,7 @@ const BingoBoard = () => {
             }}
           >
             {order.map((cell) => (
-              <SortableItem key={cell} id={cell} />
+              <Tile key={cell} id={cell} />
             ))}
           </div>
         </SortableContext>
