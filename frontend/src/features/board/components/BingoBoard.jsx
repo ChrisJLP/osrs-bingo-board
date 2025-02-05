@@ -1,11 +1,70 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// A sortable tile component using dnd-kit's hook
+function SortableItem({ id }) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: id.toString() });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      data-testid="bingo-cell"
+      className="border border-black bg-white flex items-center justify-center p-4"
+    >
+      {id}
+    </div>
+  );
+}
 
 const BingoBoard = () => {
   const [rows, setRows] = useState(5);
   const [columns, setColumns] = useState(5);
+  const [order, setOrder] = useState([]);
 
-  const totalCells = rows * columns;
-  const cells = Array.from({ length: totalCells }, (_, index) => index + 1);
+  // When rows/columns change, reset the tile order
+  useEffect(() => {
+    const totalCells = rows * columns;
+    setOrder(Array.from({ length: totalCells }, (_, index) => index + 1));
+  }, [rows, columns]);
+
+  // Setup sensors for pointer input with a slight activation delay
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 5 },
+    })
+  );
+
+  // When a drag ends, update the order
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = order.indexOf(Number(active.id));
+    const newIndex = order.indexOf(Number(over.id));
+    setOrder((items) => arrayMove(items, oldIndex, newIndex));
+  };
 
   return (
     <div data-testid="bingo-board" className="p-4">
@@ -40,24 +99,29 @@ const BingoBoard = () => {
         </div>
       </div>
 
-      <div
-        data-testid="bingo-grid"
-        className="grid gap-2"
-        style={{
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
-          gridTemplateColumns: `repeat(${columns}, 1fr)`,
-        }}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
       >
-        {cells.map((cell) => (
+        <SortableContext
+          items={order.map(String)}
+          strategy={rectSortingStrategy}
+        >
           <div
-            key={cell}
-            data-testid="bingo-cell"
-            className="border border-black bg-white flex items-center justify-center p-4"
+            data-testid="bingo-grid"
+            className="grid gap-2"
+            style={{
+              gridTemplateRows: `repeat(${rows}, 1fr)`,
+              gridTemplateColumns: `repeat(${columns}, 1fr)`,
+            }}
           >
-            {cell}
+            {order.map((cell) => (
+              <SortableItem key={cell} id={cell} />
+            ))}
           </div>
-        ))}
-      </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };
