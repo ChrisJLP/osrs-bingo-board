@@ -1,20 +1,52 @@
+// frontend/src/features/board/components/Tile.jsx
 import React, { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import TileEditor from "./TileEditor";
 
-const Tile = ({ id }) => {
+const formatNumber = (num) => {
+  if (num >= 1_000_000) {
+    return (num / 1_000_000).toFixed(num % 1_000_000 ? 1 : 0) + "m";
+  } else if (num >= 1_000) {
+    return (num / 1_000).toFixed(num % 1_000 ? 1 : 0) + "k";
+  }
+  return num.toString();
+};
+
+const Tile = ({ id, data: initialData }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: id.toString() });
   const [isEditing, setIsEditing] = useState(false);
-  const [tileText, setTileText] = useState(id.toString());
+  // tileData: { content, target, unit, progress }
+  const [tileData, setTileData] = useState(
+    initialData || {
+      content: id.toString(),
+      target: 0,
+      unit: "drops",
+      progress: 0,
+    }
+  );
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    // When editing, disable pointer events so drag doesn't interfere.
     pointerEvents: isEditing ? "none" : "auto",
+    position: "relative",
   };
+
+  const handleSave = (newData) => {
+    setTileData(newData);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  const percentage =
+    tileData.target > 0
+      ? Math.min(100, Math.round((tileData.progress / tileData.target) * 100))
+      : 0;
 
   return (
     <div
@@ -23,23 +55,48 @@ const Tile = ({ id }) => {
       {...(isEditing ? {} : attributes)}
       {...(isEditing ? {} : listeners)}
       data-testid="bingo-cell"
-      className="relative border border-black bg-white flex items-center justify-center p-14 cursor-pointer"
+      className={`relative border border-black bg-white flex items-center justify-center p-14 cursor-pointer ${
+        percentage === 100 ? "completed" : ""
+      }`}
       onClick={(e) => {
         e.stopPropagation();
         setIsEditing(true);
       }}
     >
-      <span data-testid="tile-content">{tileText}</span>
+      <span data-testid="tile-content">{tileData.content}</span>
+      {tileData.target > 0 && (
+        <>
+          <div
+            data-testid="progress-overlay"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: `${percentage}%`,
+              backgroundColor: "green",
+              opacity: 0.5,
+            }}
+          ></div>
+          <div
+            style={{
+              position: "absolute",
+              bottom: 5,
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            {`${formatNumber(tileData.progress)}/${formatNumber(
+              tileData.target
+            )}`}
+          </div>
+        </>
+      )}
       {isEditing && (
         <TileEditor
-          key={`tile-editor-${id}`} // force remount on open
-          onSelectEntry={(entry) => {
-            setTileText(entry);
-            setIsEditing(false);
-          }}
-          onCancel={() => {
-            setIsEditing(false);
-          }}
+          initialData={tileData}
+          onSave={handleSave}
+          onCancel={handleCancel}
         />
       )}
     </div>

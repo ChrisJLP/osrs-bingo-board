@@ -1,150 +1,123 @@
-import React, { useState, useEffect, useRef } from "react";
+// frontend/src/features/board/components/TileEditor.jsx
+import React, { useState, useRef } from "react";
 import ReactDOM from "react-dom";
+import WikiSearch from "./WikiSearch";
+import CustomEntry from "./CustomEntry";
+import CompletionCriteria from "./CompletionCriteria";
 
-const TileEditor = ({ onSelectEntry, onCancel }) => {
-  const [query, setQuery] = useState("");
-  const [entries, setEntries] = useState([]);
-  const [filteredResults, setFilteredResults] = useState([]);
-  const modalRef = useRef(null);
+const TileEditor = ({ initialData, onSave, onCancel }) => {
+  const [content, setContent] = useState(initialData.content || "");
+  const [criteria, setCriteria] = useState({
+    target: initialData.target || 0,
+    unit: initialData.unit || "drops",
+    progress: initialData.progress || 0,
+  });
+  const [mode, setMode] = useState("wiki"); // 'wiki' or 'custom'
+  const [dirty, setDirty] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
 
-  // Fetch entries once on mount using Promise.all for batching.
-  useEffect(() => {
-    const fetchEntries = async () => {
-      try {
-        const categories = [
-          "Category:Bosses",
-          "Category:Minigames",
-          "Category:Collection log items",
-          "Category:Revenant drop table",
-          "Category:Items dropped by monsters",
-          "Category:Members' items",
-          "Category:Tradeable items",
-          "Category:Wilderness",
-          "Category:Items that cannot be alchemised",
-          "Category:Crystal Items",
-          "Category:Boss drops",
-          "Category:Grand Exchange items",
-          "Category:Items", // optionally very broad
-        ];
+  const editorRef = useRef(null);
 
-        // Create an array of fetch promises.
-        const fetchPromises = categories.map((category) =>
-          fetch(
-            `https://oldschool.runescape.wiki/api.php?action=query&list=categorymembers&cmtitle=${encodeURIComponent(
-              category
-            )}&cmlimit=500&format=json&origin=*`,
-            {
-              headers: {
-                "User-Agent": "OSRS Bingo App (your_email@example.com)",
-              },
-            }
-          ).then((res) => res.json())
-        );
-
-        // Run all requests concurrently.
-        const results = await Promise.all(fetchPromises);
-
-        // Extract items from each category.
-        let allEntries = [];
-        results.forEach((data) => {
-          if (data.query && data.query.categorymembers) {
-            const items = data.query.categorymembers.map((item) => item.title);
-            allEntries = [...allEntries, ...items];
-          }
-        });
-
-        // Remove duplicates.
-        setEntries([...new Set(allEntries)]);
-      } catch (error) {
-        console.error("Error fetching OSRS Wiki entries:", error);
-      }
-    };
-
-    fetchEntries();
-  }, []);
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-    if (!value) {
-      setFilteredResults([]);
-      return;
-    }
-    // Filter entries and exclude any that start with "Category:"
-    const filtered = entries.filter(
-      (entry) =>
-        entry.toLowerCase().includes(value.toLowerCase()) &&
-        !entry.startsWith("Category:")
-    );
-    setFilteredResults(filtered);
+  const handleContentChange = (newContent) => {
+    setContent(newContent);
+    setDirty(true);
   };
 
-  // Close if click outside the modal.
-  const handleClickOutside = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) {
-      onCancel && onCancel();
+  const handleCriteriaChange = (newCriteria) => {
+    setCriteria(newCriteria);
+    setDirty(true);
+  };
+
+  const handleSave = () => {
+    onSave({ content, ...criteria });
+  };
+
+  const handleCancel = () => {
+    onCancel();
+  };
+
+  // Handle clicks on the backdrop
+  const handleBackdropClick = () => {
+    if (dirty) {
+      setShowWarning(true);
+    } else {
+      onCancel();
     }
   };
 
-  useEffect(() => {
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const handleWarningSave = () => {
+    setShowWarning(false);
+    handleSave();
+  };
+
+  const handleWarningDiscard = () => {
+    setShowWarning(false);
+    onCancel();
+  };
+
+  const handleWarningGoBack = () => {
+    setShowWarning(false);
+  };
 
   const modalContent = (
-    <div className="fixed inset-0 flex items-center justify-center z-50">
-      {/* Backdrop with onClick to cancel */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop handles click-away */}
       <div
         className="absolute inset-0 bg-black opacity-50"
-        onClick={(e) => {
-          e.stopPropagation();
-          onCancel && onCancel();
-        }}
-      />
-      {/* Popup */}
+        onClick={handleBackdropClick}
+      ></div>
+      {/* Modal content – stop propagation so clicks inside don’t trigger the backdrop */}
       <div
-        ref={modalRef}
-        className="relative bg-white p-4 rounded shadow-lg w-80"
+        ref={editorRef}
+        className="relative bg-white p-4 rounded shadow-lg w-96"
+        onClick={(e) => e.stopPropagation()}
       >
-        <input
-          data-testid="tile-editor-input"
-          type="text"
-          placeholder="Search OSRS Wiki..."
-          value={query}
-          onChange={handleInputChange}
-          className="border rounded p-2 w-full mb-2"
-        />
-        {filteredResults.length > 0 && (
-          <ul className="bg-white border rounded w-full mt-1 shadow-md max-h-48 overflow-y-auto">
-            {filteredResults.map((entry) => (
-              <li
-                key={entry}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectEntry(entry);
-                  // Clear search and results after selection.
-                  setQuery("");
-                  setFilteredResults([]);
-                }}
-                className="p-2 cursor-pointer hover:bg-gray-200"
-              >
-                {entry}
-              </li>
-            ))}
-          </ul>
-        )}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setQuery("");
-            setFilteredResults([]);
-            onCancel && onCancel();
-          }}
-          className="mt-2 border rounded p-2 w-full"
-        >
-          Cancel
-        </button>
+        <div className="mb-4 flex space-x-2">
+          <button onClick={() => setMode("wiki")} disabled={mode === "wiki"}>
+            Wiki Search
+          </button>
+          <button
+            onClick={() => setMode("custom")}
+            disabled={mode === "custom"}
+          >
+            Custom Entry
+          </button>
+        </div>
+        <div className="mb-4">
+          {mode === "wiki" ? (
+            <>
+              <WikiSearch onSelect={handleContentChange} />
+              <div className="mt-2">
+                <strong>Currently selected:</strong> {content || "None"}
+              </div>
+            </>
+          ) : (
+            <CustomEntry value={content} onChange={handleContentChange} />
+          )}
+        </div>
+        <div className="mb-4">
+          <CompletionCriteria
+            value={criteria}
+            onChange={handleCriteriaChange}
+          />
+        </div>
+        <div className="flex justify-end space-x-2">
+          <button onClick={handleSave}>Save</button>
+          <button onClick={handleCancel}>Cancel</button>
+        </div>
       </div>
+      {showWarning && (
+        <div className="absolute inset-0 flex items-center justify-center z-60">
+          <div className="bg-white border p-4 rounded">
+            <p>Unsaved Changes</p>
+            <div className="flex space-x-2 mt-2">
+              <button onClick={handleWarningSave}>Save changes</button>
+              <button onClick={handleWarningDiscard}>Discard changes</button>
+              <button onClick={handleWarningGoBack}>Go back</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
