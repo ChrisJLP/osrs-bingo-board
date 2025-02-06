@@ -77,7 +77,10 @@ const TileEditor = ({ initialData, onSave, onCancel }) => {
             Wiki Search
           </button>
           <button
-            onClick={() => setMode("custom")}
+            onClick={() => {
+              setMode("custom");
+              setContent(""); // Clear input when switching to custom entry.
+            }}
             disabled={mode === "custom"}
           >
             Custom Entry
