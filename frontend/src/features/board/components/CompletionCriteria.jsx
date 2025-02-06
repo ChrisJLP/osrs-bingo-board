@@ -1,22 +1,71 @@
 // frontend/src/features/board/components/CompletionCriteria.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
+
+const parseShorthand = (inputStr) => {
+  const trimmed = inputStr.trim().toLowerCase();
+  const regex = /^(\d+(\.\d+)?)([km])?$/;
+  const match = trimmed.match(regex);
+  if (!match) return NaN;
+  let num = parseFloat(match[1]);
+  if (match[3] === "k") {
+    num *= 1000;
+  } else if (match[3] === "m") {
+    num *= 1000000;
+  }
+  return num;
+};
 
 const CompletionCriteria = ({ value, onChange }) => {
   // value = { target, unit, progress }
-  const handleTargetChange = (e) => {
-    const newTarget = parseInt(e.target.value, 10) || 0;
+  // Maintain local string states for the input fields.
+  const [targetStr, setTargetStr] = useState(value.target.toString());
+  const [progressStr, setProgressStr] = useState(value.progress.toString());
+
+  useEffect(() => {
+    // When the parent value changes, update local state.
+    setTargetStr(value.target.toString());
+    setProgressStr(value.progress.toString());
+  }, [value.target, value.progress]);
+
+  const handleTargetBlur = () => {
+    const parsed = parseShorthand(targetStr);
+    const newTarget = isNaN(parsed) ? 0 : parsed;
+    // Ensure progress does not exceed the new target.
     const newProgress = value.progress > newTarget ? newTarget : value.progress;
     onChange({ ...value, target: newTarget, progress: newProgress });
+    setTargetStr(newTarget.toString());
+  };
+
+  const handleProgressBlur = () => {
+    const parsed = parseShorthand(progressStr);
+    let newProgress = isNaN(parsed) ? 0 : parsed;
+    if (newProgress > value.target) newProgress = value.target;
+    onChange({ ...value, progress: newProgress });
+    setProgressStr(newProgress.toString());
+  };
+
+  const handleTargetChange = (e) => {
+    setTargetStr(e.target.value);
+  };
+
+  const handleProgressChange = (e) => {
+    setProgressStr(e.target.value);
   };
 
   const handleUnitChange = (e) => {
     onChange({ ...value, unit: e.target.value });
   };
 
-  const handleProgressChange = (e) => {
-    let newProgress = parseInt(e.target.value, 10) || 0;
-    if (newProgress > value.target) newProgress = value.target;
-    onChange({ ...value, progress: newProgress });
+  const handleTargetKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleTargetBlur();
+    }
+  };
+
+  const handleProgressKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleProgressBlur();
+    }
   };
 
   return (
@@ -25,9 +74,11 @@ const CompletionCriteria = ({ value, onChange }) => {
         <label>
           Target:
           <input
-            type="number"
-            value={value.target}
+            type="text"
+            value={targetStr}
             onChange={handleTargetChange}
+            onBlur={handleTargetBlur}
+            onKeyDown={handleTargetKeyDown}
             aria-label="Target"
           />
         </label>
@@ -47,9 +98,11 @@ const CompletionCriteria = ({ value, onChange }) => {
         <label>
           Progress:
           <input
-            type="number"
-            value={value.progress}
+            type="text"
+            value={progressStr}
             onChange={handleProgressChange}
+            onBlur={handleProgressBlur}
+            onKeyDown={handleProgressKeyDown}
             aria-label="Progress"
           />
         </label>
