@@ -1,5 +1,7 @@
-import pool from "../config/db.js";
+import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
+
+const prisma = new PrismaClient();
 
 export const verifyBoardPassword = async (req, res, next) => {
   try {
@@ -9,45 +11,44 @@ export const verifyBoardPassword = async (req, res, next) => {
       return res.status(401).json({ error: "Password required" });
     }
 
-    let boardId;
-    // Check if this is a MainBoard route
+    let board;
+
+    // Check if it's a MainBoard
     if (req.params.id) {
-      boardId = req.params.id;
-      const result = await pool.query(
-        "SELECT password FROM MainBoards WHERE id = $1",
-        [boardId]
-      );
-      if (!result.rowCount) {
+      board = await prisma.mainBoard.findUnique({
+        where: { id: req.params.id },
+        select: { password: true }, // Only fetch the password
+      });
+
+      if (!board) {
         return res.status(404).json({ error: "Board not found" });
       }
-      const hashedPassword = result.rows[0].password;
-      if (!hashedPassword) return next(); // no password set
+    }
+    // Check if it's a TeamBoard
+    else if (req.body.team_board_id) {
+      board = await prisma.teamBoard.findUnique({
+        where: { id: req.body.team_board_id },
+        select: { password: true },
+      });
 
-      const isMatch = await bcrypt.compare(providedPassword, hashedPassword);
-      if (!isMatch) {
-        return res.status(401).json({ error: "Invalid password" });
-      }
-    } else if (req.body.team_board_id) {
-      boardId = req.body.team_board_id;
-      const result = await pool.query(
-        "SELECT password FROM TeamBoards WHERE id = $1",
-        [boardId]
-      );
-      if (!result.rowCount) {
+      if (!board) {
         return res.status(404).json({ error: "Team board not found" });
       }
-      const hashedPassword = result.rows[0].password;
-      if (!hashedPassword) return next();
-
-      const isMatch = await bcrypt.compare(providedPassword, hashedPassword);
-      if (!isMatch) {
-        return res.status(401).json({ error: "Invalid password" });
-      }
     } else {
-      return res.status(400).json({
-        error: "Board id not provided for password verification",
-      });
+      return res
+        .status(400)
+        .json({ error: "Board ID not provided for password verification" });
     }
+
+    // If the board has no password set, allow access
+    if (!board.password) return next();
+
+    // Compare the provided password with the stored hash
+    const isMatch = await bcrypt.compare(providedPassword, board.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+
     next();
   } catch (err) {
     console.error("Password verification error:", err);

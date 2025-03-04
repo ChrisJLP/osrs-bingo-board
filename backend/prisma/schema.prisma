@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model BingoProject {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(100)
+  password  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  mainBoards MainBoard[]
+  teams      Team[]
+  TeamBoard  TeamBoard[]
+}
+
+model MainBoard {
+  id          String   @id @default(uuid())
+  projectId   String?  @unique
+  name        String   @db.VarChar(100)
+  rows        Int      @default(5) @db.Integer
+  columns     Int      @default(5) @db.Integer
+  password    String?  @db.Text
+  color       String?  @db.VarChar(7)
+  bonusPoints Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  project   BingoProject? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tiles     Tile[]
+  TeamBoard TeamBoard[]
+}
+
+model Tile {
+  id       String  @id @default(uuid())
+  boardId  String
+  position Int
+  content  String  @db.Text
+  imageUrl String? @db.VarChar(255)
+  target   Int     @default(0)
+  unit     String  @default("drops")
+  color    String? @db.VarChar(7)
+  points   Int     @default(0)
+
+  board         MainBoard       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  TeamBoardTile TeamBoardTile[]
+  Contribution  Contribution[]
+}
+
+model Team {
+  id        String @id @default(uuid())
+  projectId String
+  name      String @db.VarChar(100)
+
+  project     BingoProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  teamMembers TeamMember[]
+  teamBoards  TeamBoard[]
+}
+
+model TeamMember {
+  id      String  @id @default(uuid())
+  teamId  String
+  boardId String?
+  name    String  @db.VarChar(100)
+
+  team         Team           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  board        TeamBoard?     @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  Contribution Contribution[]
+  Leaderboard  Leaderboard[]
+}
+
+model TeamBoard {
+  id                 String  @id @default(uuid())
+  projectId          String
+  teamId             String
+  boardId            String
+  password           String? @db.Text
+  completedRows      Int[]   @default([])
+  completedColumns   Int[]   @default([])
+  completedDiagonals Int[]   @default([])
+
+  project      BingoProject    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team         Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  board        MainBoard       @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tiles        TeamBoardTile[]
+  TeamMember   TeamMember[]
+  Contribution Contribution[]
+  Leaderboard  Leaderboard[]
+}
+
+model TeamBoardTile {
+  id          String  @id @default(uuid())
+  teamBoardId String
+  tileId      String
+  progress    Int     @default(0)
+  completed   Boolean @default(false)
+
+  teamBoard TeamBoard @relation(fields: [teamBoardId], references: [id], onDelete: Cascade)
+  tile      Tile      @relation(fields: [tileId], references: [id], onDelete: Cascade)
+}
+
+model Contribution {
+  id          String @id @default(uuid())
+  teamBoardId String
+  tileId      String
+  memberId    String
+  amount      Int    @default(0)
+
+  teamBoard TeamBoard  @relation(fields: [teamBoardId], references: [id], onDelete: Cascade)
+  tile      Tile       @relation(fields: [tileId], references: [id], onDelete: Cascade)
+  member    TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Leaderboard {
+  id          String @id @default(uuid())
+  teamBoardId String
+  memberId    String
+  points      Int    @default(0)
+
+  teamBoard TeamBoard  @relation(fields: [teamBoardId], references: [id], onDelete: Cascade)
+  member    TeamMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
