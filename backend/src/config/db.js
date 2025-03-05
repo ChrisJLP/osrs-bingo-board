@@ -1,26 +1,30 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-import pkg from "pg";
-const { Pool } = pkg;
+import { PrismaClient } from "@prisma/client";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
 });
 
-pool.on("error", (err) => {
-  console.error("Unexpected error on idle client", err);
-  process.exit(-1);
+// Optional: Test the connection by running a simple query
+(async () => {
+  try {
+    const result = await prisma.$queryRaw`SELECT NOW()`;
+    console.log("Connected to DB at:", result[0].now);
+  } catch (error) {
+    console.error("Error connecting to DB:", error);
+  }
+})();
+
+// Optional: Handle graceful shutdown
+process.on("SIGINT", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
 });
 
-// (Optional) Test the connection:
-pool
-  .query("SELECT NOW()")
-  .then((result) => {
-    console.log("Connected to DB at:", result.rows[0].now);
-  })
-  .catch((err) => {
-    console.error("Error connecting to DB:", err);
-  });
-
-export default pool;
+export default prisma;
