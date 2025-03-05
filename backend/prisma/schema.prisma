@@ -7,6 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model SoloBoard {
+  id        String     @id @default(uuid())
+  name      String     @unique @db.VarChar(100) // Unique board name  
+  password  String     @db.Text
+  title     String?    @db.VarChar(255) // Optional title like "My 2025 Goals"
+  createdAt DateTime   @default(now())
+  tiles     SoloTile[] // Relation to tiles  
+}
+
+model SoloTile {
+  id        String    @id @default(uuid())
+  boardId   String
+  board     SoloBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  position  Int
+  content   String    @db.Text
+  imageUrl  String?   @db.VarChar(255)
+  target    Int       @default(0)
+  unit      String    @default("drops")
+  progress  Int       @default(0)
+  completed Boolean   @default(false)
+}
+
 model BingoProject {
   id        String   @id @default(uuid())
   name      String   @db.VarChar(100)
