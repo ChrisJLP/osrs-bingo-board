@@ -1,3 +1,4 @@
+// frontend/src/features/board/components/BingoBoard.jsx
 import React, { useState, useEffect } from "react";
 import {
   DndContext,
@@ -20,12 +21,14 @@ const BingoBoard = () => {
   const [order, setOrder] = useState([]);
   const [tiles, setTiles] = useState({});
 
-  // For the modal popup:
+  // Modal state
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [boardName, setBoardName] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     const totalCells = rows * columns;
+    // Initialize the order array
     setOrder(Array.from({ length: totalCells }, (_, index) => index + 1));
   }, [rows, columns]);
 
@@ -41,23 +44,24 @@ const BingoBoard = () => {
     setOrder((items) => arrayMove(items, oldIndex, newIndex));
   };
 
-  // This is called by each Tile to update the tile data in the board-level state.
+  // Called by each Tile to update the board-level tile data
   const handleTileUpdate = (tileId, newData) => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // Open the modal for board name input
+  // Show the name input modal
   const handleClickSaveBoard = () => {
+    setBoardName("");
+    setErrorMessage("");
     setShowNamePrompt(true);
   };
 
-  // Once the user has typed a name and clicked "Confirm," actually save the board
+  // Attempt to save the board once the user enters a name
   const handleConfirmBoardName = async () => {
-    setShowNamePrompt(false);
+    setErrorMessage(""); // Clear previous error
 
-    // Build the data object we’ll send to the backend
     const boardData = {
-      name: boardName, // pass the chosen board name
+      name: boardName,
       rows,
       columns,
       tiles: order.map(
@@ -75,10 +79,17 @@ const BingoBoard = () => {
     try {
       const result = await saveSoloBoard(boardData);
       console.log("Board saved successfully:", result);
+      // Close the modal & reset states
+      setShowNamePrompt(false);
       alert("Board saved successfully!");
     } catch (error) {
+      // If we get a 409 or other error
       console.error("Error saving board:", error);
-      alert("Error saving board.");
+      if (error.response && error.response.status === 409) {
+        setErrorMessage("This name is already taken.");
+      } else {
+        setErrorMessage("Something went wrong. Please try again.");
+      }
     }
   };
 
@@ -90,7 +101,6 @@ const BingoBoard = () => {
   return (
     <div className="p-4 text-center flex flex-col items-center">
       <h1 className="text-xl font-bold mb-4">Bingo Board</h1>
-
       <div className="controls flex space-x-4 mb-4">
         <div>
           <label className="block mb-1">Rows:</label>
@@ -151,7 +161,7 @@ const BingoBoard = () => {
         Save Board
       </button>
 
-      {/* Simple modal for board name input */}
+      {/* Popup Modal for Board Name */}
       {showNamePrompt && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
@@ -167,8 +177,11 @@ const BingoBoard = () => {
               value={boardName}
               onChange={(e) => setBoardName(e.target.value)}
               className="border rounded p-1 mb-2 w-full"
-              placeholder="e.g. My 2025 Goals"
+              placeholder="e.g. Ironman goals 2025"
             />
+            {errorMessage && (
+              <p className="text-red-500 mb-2">{errorMessage}</p>
+            )}
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowNamePrompt(false)}
