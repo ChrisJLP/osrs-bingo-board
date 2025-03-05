@@ -1,5 +1,4 @@
-// frontend/src/features/board/components/Tile.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import TileEditor from "./TileEditor";
@@ -32,11 +31,16 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
     }
   );
 
+  // ➜➜ ADD THIS EFFECT to re-sync local state when props change:
+  useEffect(() => {
+    setTileData(initialData);
+  }, [initialData]);
+
   // Apply transform/transition for DnD.
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    pointerEvents: isEditing ? "none" : "auto", // prevent dragging when editing
+    pointerEvents: isEditing ? "none" : "auto",
     position: "relative",
   };
 
@@ -64,7 +68,6 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
     <div
       ref={setNodeRef}
       style={style}
-      // Only attach DnD attributes if not editing.
       {...(isEditing ? {} : attributes)}
       {...(isEditing ? {} : listeners)}
       data-testid="bingo-cell"
@@ -72,7 +75,6 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
         percentage === 100 ? "completed" : ""
       }`}
       onClick={(e) => {
-        // Prevent the click from bubbling up, and open the editor.
         e.stopPropagation();
         setIsEditing(true);
       }}

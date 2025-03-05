@@ -1,34 +1,30 @@
-// backend/src/controllers/soloBoardController.js
 import prisma from "../config/db.js";
 
 export const createSoloBoard = async (req, res) => {
   try {
     const { name, rows, columns, tiles } = req.body;
-
-    // Check if a board with this name already exists
     const existingBoard = await prisma.soloBoard.findUnique({
       where: { name },
     });
 
     if (existingBoard) {
-      // Name is taken
       return res.status(409).json({ error: "Board name already taken" });
     }
 
-    // Otherwise, create the new board
     const board = await prisma.soloBoard.create({
       data: {
         name,
-        password: "password", // For testing only
+        password: "password", // For testing only – update as needed
         title: "Test Board Title",
         tiles: {
           create: tiles.map((tile, index) => ({
-            position: index,
+            position: index, // Stored as 0-indexed
             content: tile.content,
             target: tile.target,
             unit: tile.unit,
             progress: tile.progress,
             completed: tile.completed,
+            imageUrl: tile.imageUrl,
           })),
         },
       },
@@ -40,6 +36,24 @@ export const createSoloBoard = async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating solo board:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getSoloBoard = async (req, res) => {
+  try {
+    console.log("Incoming name param:", JSON.stringify(req.params.name));
+    const { name } = req.params;
+    const board = await prisma.soloBoard.findUnique({
+      where: { name },
+      include: { tiles: true },
+    });
+    if (!board) {
+      return res.status(404).json({ error: "Board not found" });
+    }
+    return res.status(200).json(board);
+  } catch (error) {
+    console.error("Error fetching solo board:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };

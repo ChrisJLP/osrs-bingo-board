@@ -1,7 +1,15 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+// vite.config.js
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-})
+  server: {
+    proxy: {
+      "/solo-board": {
+        target: "http://localhost:5001", // adjust to your backend's URL and port
+        changeOrigin: true,
+      },
+    },
+  },
+});

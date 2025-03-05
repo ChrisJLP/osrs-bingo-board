@@ -1,8 +1,12 @@
 import express from "express";
-import { createSoloBoard } from "../controllers/soloBoardController.js";
+import {
+  createSoloBoard,
+  getSoloBoard,
+} from "../controllers/soloBoardController.js";
 
 const router = express.Router();
 
 router.post("/", createSoloBoard);
+router.get("/:name", getSoloBoard);
 
 export default router;
