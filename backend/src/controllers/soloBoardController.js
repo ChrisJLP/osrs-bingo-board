@@ -2,22 +2,18 @@ import prisma from "../config/db.js";
 
 export const createSoloBoard = async (req, res) => {
   try {
-    // Expecting board data with rows, columns, and an array of tiles.
-    const { rows, columns, tiles } = req.body;
+    const { name, rows, columns, tiles } = req.body;
 
-    // Generate a unique board name (for now, as a test)
-    const boardName = "test-board-" + Date.now();
-    const boardPassword = "password";
-
-    // Create the SoloBoard with nested creation of SoloTile records
+    // For this test, no password or other fields yet
+    // 'name' must be unique if your schema has @unique on it
     const board = await prisma.soloBoard.create({
       data: {
-        name: boardName,
-        password: boardPassword,
-        title: "Test Board",
+        name: name || "test-board-" + Date.now(),
+        password: "password", // dummy placeholder
+        title: "Test Board Title",
         tiles: {
           create: tiles.map((tile, index) => ({
-            position: index, // Use index as position (or tile-specific value if available)
+            position: index,
             content: tile.content,
             target: tile.target,
             unit: tile.unit,
