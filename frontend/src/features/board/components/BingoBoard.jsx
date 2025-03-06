@@ -128,7 +128,7 @@ const BingoBoard = () => {
       setTiles(newTiles);
       setIsExistingBoard(true);
       setShowFindBoardPrompt(false);
-      // Note: boardData.rows and boardData.columns are undefined because your model doesn't store them.
+      // Note: boardData.rows and boardData.columns are undefined because the model doesn't store them yet.
     } catch (err) {
       console.error("Board not found:", err);
       alert("Board not found. Please check the board name.");

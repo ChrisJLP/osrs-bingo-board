@@ -1,4 +1,3 @@
-import TestComponent from "./components/TestComponent";
 import BingoBoard from "./features/board/components/BingoBoard";
 import NavBar from "./components/NavBar";
 
