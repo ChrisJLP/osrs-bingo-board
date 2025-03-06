@@ -57,3 +57,46 @@ export const getSoloBoard = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// In soloBoardController.js
+export const updateSoloBoard = async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { rows, columns, tiles } = req.body;
+    // Find the board by name
+    const board = await prisma.soloBoard.findUnique({ where: { name } });
+    if (!board) {
+      return res.status(404).json({ error: "Board not found" });
+    }
+    // Instead of prisma.tile.deleteMany({ where: { soloBoardId: board.id } })
+    await prisma.soloTile.deleteMany({
+      where: { boardId: board.id },
+    });
+
+    // Update board dimensions and re-create the tiles
+    const updatedBoard = await prisma.soloBoard.update({
+      where: { name },
+      data: {
+        tiles: {
+          create: tiles.map((tile, index) => ({
+            position: index,
+            content: tile.content,
+            imageUrl: tile.imageUrl,
+            target: tile.target,
+            unit: tile.unit,
+            progress: tile.progress,
+            completed: tile.completed,
+          })),
+        },
+      },
+    });
+
+    return res.status(200).json({
+      message: "Board updated successfully",
+      boardId: updatedBoard.id,
+    });
+  } catch (error) {
+    console.error("Error updating board:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};

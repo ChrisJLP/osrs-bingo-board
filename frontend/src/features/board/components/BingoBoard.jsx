@@ -13,7 +13,7 @@ import {
   rectSortingStrategy,
 } from "@dnd-kit/sortable";
 import Tile from "./Tile";
-import { saveSoloBoard } from "../../../api/soloBoard";
+import { saveSoloBoard, updateSoloBoard } from "../../../api/soloBoard";
 
 const BingoBoard = () => {
   const [rows, setRows] = useState(5);
@@ -66,41 +66,40 @@ const BingoBoard = () => {
 
   // Handlers for "Save Board" (create/update) modal
   const handleClickSaveBoard = () => {
-    setBoardName("");
-    setErrorMessage("");
-    setShowSavePrompt(true);
+    if (isExistingBoard) {
+      // We already have boardName, so just call the confirm function
+      handleConfirmBoardName();
+    } else {
+      // New board, so ask for a name
+      setBoardName("");
+      setErrorMessage("");
+      setShowSavePrompt(true);
+    }
   };
 
   const handleConfirmBoardName = async () => {
     setErrorMessage("");
     const boardData = {
-      name: boardName,
+      name: boardName, // Either typed in or set when user found the board
       rows,
       columns,
-      tiles: order.map(
-        (tileId) =>
-          tiles[tileId] || {
-            content: tileId.toString(),
-            target: 0,
-            unit: "drops",
-            progress: 0,
-            completed: false,
-          }
-      ),
+      tiles: order.map((tileId) => tiles[tileId] || { ...defaults }),
     };
 
     try {
-      const result = await saveSoloBoard(boardData);
-      console.log("Board saved successfully:", result);
-      setShowSavePrompt(false);
-      alert("Board saved successfully!");
-    } catch (error) {
-      console.error("Error saving board:", error);
-      if (error.response && error.response.status === 409) {
-        setErrorMessage("This name is already taken.");
+      let result;
+      if (isExistingBoard) {
+        result = await updateSoloBoard(boardData);
+        console.log("Board updated successfully:", result);
+        alert("Board updated successfully!");
       } else {
-        setErrorMessage("Something went wrong. Please try again.");
+        result = await saveSoloBoard(boardData);
+        console.log("Board saved successfully:", result);
+        alert("Board saved successfully!");
       }
+      setShowSavePrompt(false);
+    } catch (error) {
+      // handle error
     }
   };
 
@@ -126,6 +125,7 @@ const BingoBoard = () => {
         };
       });
       setTiles(newTiles);
+      setBoardName(findBoardName);
       setIsExistingBoard(true);
       setShowFindBoardPrompt(false);
       // Note: boardData.rows and boardData.columns are undefined because the model doesn't store them yet.
