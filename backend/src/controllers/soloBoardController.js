@@ -1,24 +1,26 @@
+import bcrypt from "bcrypt";
 import prisma from "../config/db.js";
 
 export const createSoloBoard = async (req, res) => {
   try {
-    const { name, rows, columns, tiles } = req.body;
+    const { name, rows, columns, tiles, password } = req.body;
     const existingBoard = await prisma.soloBoard.findUnique({
       where: { name },
     });
-
     if (existingBoard) {
       return res.status(409).json({ error: "Board name already taken" });
     }
+    // Hash the provided password using bcrypt (10 salt rounds)
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const board = await prisma.soloBoard.create({
       data: {
         name,
-        password: "password", // For testing only – update as needed
+        password: hashedPassword,
         title: "Test Board Title",
         tiles: {
           create: tiles.map((tile, index) => ({
-            position: index, // Stored as 0-indexed
+            position: index,
             content: tile.content,
             target: tile.target,
             unit: tile.unit,
@@ -58,22 +60,28 @@ export const getSoloBoard = async (req, res) => {
   }
 };
 
-// In soloBoardController.js
 export const updateSoloBoard = async (req, res) => {
   try {
     const { name } = req.params;
-    const { rows, columns, tiles } = req.body;
+    const { rows, columns, tiles, password } = req.body;
     // Find the board by name
     const board = await prisma.soloBoard.findUnique({ where: { name } });
     if (!board) {
       return res.status(404).json({ error: "Board not found" });
     }
-    // Instead of prisma.tile.deleteMany({ where: { soloBoardId: board.id } })
+
+    // Verify the provided password against the stored hashed password
+    const isPasswordValid = await bcrypt.compare(password, board.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ error: "Incorrect board password" });
+    }
+
+    // Delete existing tiles before re-creating them
     await prisma.soloTile.deleteMany({
       where: { boardId: board.id },
     });
 
-    // Update board dimensions and re-create the tiles
+    // Update board dimensions (if stored) and re-create the tiles
     const updatedBoard = await prisma.soloBoard.update({
       where: { name },
       data: {

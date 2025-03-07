@@ -15,6 +15,15 @@ import {
 import Tile from "./Tile";
 import { saveSoloBoard, updateSoloBoard } from "../../../api/soloBoard";
 
+// Default tile values if none exist.
+const defaults = {
+  content: "",
+  target: 0,
+  unit: "drops",
+  progress: 0,
+  completed: false,
+};
+
 const BingoBoard = () => {
   const [rows, setRows] = useState(5);
   const [columns, setColumns] = useState(5);
@@ -22,12 +31,13 @@ const BingoBoard = () => {
   const [tiles, setTiles] = useState({});
   const [isExistingBoard, setIsExistingBoard] = useState(false);
 
-  // States for the "Save Board" (create/update) modal
-  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  // New states for board name and board password
   const [boardName, setBoardName] = useState("");
+  const [boardPassword, setBoardPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // States for the "Find your board" modal
+  // States for the modals
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [showFindBoardPrompt, setShowFindBoardPrompt] = useState(false);
   const [findBoardName, setFindBoardName] = useState("");
 
@@ -64,23 +74,17 @@ const BingoBoard = () => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // Handlers for "Save Board" (create/update) modal
+  // Always show the save/update modal when clicking "Save Board"/"Update board"
   const handleClickSaveBoard = () => {
-    if (isExistingBoard) {
-      // We already have boardName, so just call the confirm function
-      handleConfirmBoardName();
-    } else {
-      // New board, so ask for a name
-      setBoardName("");
-      setErrorMessage("");
-      setShowSavePrompt(true);
-    }
+    setErrorMessage("");
+    setShowSavePrompt(true);
   };
 
   const handleConfirmBoardName = async () => {
     setErrorMessage("");
     const boardData = {
-      name: boardName, // Either typed in or set when user found the board
+      name: boardName,
+      password: boardPassword, // Include the board password
       rows,
       columns,
       tiles: order.map((tileId) => tiles[tileId] || { ...defaults }),
@@ -99,7 +103,7 @@ const BingoBoard = () => {
       }
       setShowSavePrompt(false);
     } catch (error) {
-      // handle error
+      setErrorMessage(error.response?.data?.error || "An error occurred");
     }
   };
 
@@ -128,7 +132,6 @@ const BingoBoard = () => {
       setBoardName(findBoardName);
       setIsExistingBoard(true);
       setShowFindBoardPrompt(false);
-      // Note: boardData.rows and boardData.columns are undefined because the model doesn't store them yet.
     } catch (err) {
       console.error("Board not found:", err);
       alert("Board not found. Please check the board name.");
@@ -205,7 +208,7 @@ const BingoBoard = () => {
         </button>
       </div>
 
-      {/* Modal for saving board (create/update) */}
+      {/* Modal for saving/updating board */}
       {showSavePrompt && (
         <div
           className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
@@ -215,14 +218,42 @@ const BingoBoard = () => {
             className="bg-white p-4 rounded shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-lg font-bold mb-2">Enter Board Name</h2>
-            <input
-              type="text"
-              value={boardName}
-              onChange={(e) => setBoardName(e.target.value)}
-              className="border rounded p-1 mb-2 w-full"
-              placeholder="e.g. Ironman goals 2025"
-            />
+            <h2 className="text-lg font-bold mb-2">
+              {isExistingBoard
+                ? "Enter Board Password to Update Board"
+                : "Enter Board Details"}
+            </h2>
+            {isExistingBoard ? (
+              <>
+                <p className="mb-2">
+                  <strong>Board Name:</strong> {boardName}
+                </p>
+                <input
+                  type="password"
+                  value={boardPassword}
+                  onChange={(e) => setBoardPassword(e.target.value)}
+                  className="border rounded p-1 mb-2 w-full"
+                  placeholder="Enter board password"
+                />
+              </>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={boardName}
+                  onChange={(e) => setBoardName(e.target.value)}
+                  className="border rounded p-1 mb-2 w-full"
+                  placeholder="e.g. Ironman goals 2025"
+                />
+                <input
+                  type="password"
+                  value={boardPassword}
+                  onChange={(e) => setBoardPassword(e.target.value)}
+                  className="border rounded p-1 mb-2 w-full"
+                  placeholder="Enter board password"
+                />
+              </>
+            )}
             {errorMessage && (
               <p className="text-red-500 mb-2">{errorMessage}</p>
             )}
