@@ -1,3 +1,4 @@
+// frontend/src/features/board/components/BingoBoard.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import {
@@ -25,6 +26,7 @@ const defaults = {
 };
 
 const BingoBoard = () => {
+  // Default to 5 rows and 5 columns.
   const [rows, setRows] = useState(5);
   const [columns, setColumns] = useState(5);
   const [order, setOrder] = useState([]);
@@ -41,12 +43,13 @@ const BingoBoard = () => {
   const [showFindBoardPrompt, setShowFindBoardPrompt] = useState(false);
   const [findBoardName, setFindBoardName] = useState("");
 
+  // Setup order when rows or columns change
   useEffect(() => {
     const totalCells = rows * columns;
     setOrder(Array.from({ length: totalCells }, (_, index) => index + 1));
   }, [rows, columns]);
 
-  // Listen for the custom event from NavBar to open the "find board" modal
+  // Listen for custom event to open the "find board" modal
   useEffect(() => {
     const openFindModal = () => {
       setShowFindBoardPrompt(true);
@@ -69,12 +72,12 @@ const BingoBoard = () => {
     setOrder((items) => arrayMove(items, oldIndex, newIndex));
   };
 
-  // Called by each Tile to update board-level tile data.
+  // Update board-level tile data from individual Tile updates.
   const handleTileUpdate = (tileId, newData) => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // Always show the save/update modal when clicking "Save Board"/"Update board"
+  // Show save/update modal when clicking "Save Board" or "Update board"
   const handleClickSaveBoard = () => {
     setErrorMessage("");
     setShowSavePrompt(true);
@@ -84,7 +87,7 @@ const BingoBoard = () => {
     setErrorMessage("");
     const boardData = {
       name: boardName,
-      password: boardPassword, // Include the board password
+      password: boardPassword,
       rows,
       columns,
       tiles: order.map((tileId) => tiles[tileId] || { ...defaults }),
@@ -94,11 +97,9 @@ const BingoBoard = () => {
       let result;
       if (isExistingBoard) {
         result = await updateSoloBoard(boardData);
-        console.log("Board updated successfully:", result);
         alert("Board updated successfully!");
       } else {
         result = await saveSoloBoard(boardData);
-        console.log("Board saved successfully:", result);
         alert("Board saved successfully!");
       }
       setShowSavePrompt(false);
@@ -107,18 +108,18 @@ const BingoBoard = () => {
     }
   };
 
+  // Fetch a board by name and update grid dimensions
   const handleFindBoard = async () => {
     try {
       const res = await axios.get(`/solo-board/${findBoardName}`);
       const boardData = res.data;
-      console.log("Fetched board data:", boardData);
       // Sort the tiles by position (ascending)
       const sortedTiles = (boardData.tiles || []).sort(
         (a, b) => a.position - b.position
       );
       const newTiles = {};
       sortedTiles.forEach((tile) => {
-        // Use tile.position + 1 for your 1-indexed keys
+        // Use tile.position + 1 for 1-indexed keys
         newTiles[tile.position + 1] = {
           content: tile.content,
           target: tile.target,
@@ -128,6 +129,9 @@ const BingoBoard = () => {
           imageUrl: tile.imageUrl,
         };
       });
+      // Update the board dimensions from the fetched data (fallback to defaults)
+      setRows(boardData.rows || 5);
+      setColumns(boardData.columns || 5);
       setTiles(newTiles);
       setBoardName(findBoardName);
       setIsExistingBoard(true);

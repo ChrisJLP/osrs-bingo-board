@@ -13,6 +13,8 @@ model SoloBoard {
   password  String     @db.Text
   title     String?    @db.VarChar(255)
   createdAt DateTime   @default(now())
+  rows      Int        @default(5)
+  columns   Int        @default(5)
   tiles     SoloTile[]
 }
 

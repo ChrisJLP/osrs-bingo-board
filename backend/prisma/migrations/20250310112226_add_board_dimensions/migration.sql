@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "SoloBoard" ADD COLUMN     "columns" INTEGER NOT NULL DEFAULT 5,
+ADD COLUMN     "rows" INTEGER NOT NULL DEFAULT 5;

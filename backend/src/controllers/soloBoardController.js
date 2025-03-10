@@ -3,7 +3,7 @@ import prisma from "../config/db.js";
 
 export const createSoloBoard = async (req, res) => {
   try {
-    const { name, rows, columns, tiles, password } = req.body;
+    const { name, rows = 5, columns = 5, tiles, password } = req.body;
     const existingBoard = await prisma.soloBoard.findUnique({
       where: { name },
     });
@@ -17,7 +17,9 @@ export const createSoloBoard = async (req, res) => {
       data: {
         name,
         password: hashedPassword,
-        title: "Test Board Title",
+        title: req.body.title || "Test Board Title",
+        rows,
+        columns,
         tiles: {
           create: tiles.map((tile, index) => ({
             position: index,
@@ -42,9 +44,9 @@ export const createSoloBoard = async (req, res) => {
   }
 };
 
+// controllers/soloBoardController.js
 export const getSoloBoard = async (req, res) => {
   try {
-    console.log("Incoming name param:", JSON.stringify(req.params.name));
     const { name } = req.params;
     const board = await prisma.soloBoard.findUnique({
       where: { name },
@@ -81,10 +83,12 @@ export const updateSoloBoard = async (req, res) => {
       where: { boardId: board.id },
     });
 
-    // Update board dimensions (if stored) and re-create the tiles
+    // Update board dimensions (rows and columns) and re-create the tiles
     const updatedBoard = await prisma.soloBoard.update({
       where: { name },
       data: {
+        rows,
+        columns,
         tiles: {
           create: tiles.map((tile, index) => ({
             position: index,
