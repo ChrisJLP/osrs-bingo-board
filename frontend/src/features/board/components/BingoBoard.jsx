@@ -1,20 +1,12 @@
 // frontend/src/features/board/components/BingoBoard.jsx
-import React, { useState, useEffect } from "react";
-import axios from "axios";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  rectSortingStrategy,
-} from "@dnd-kit/sortable";
+import React, { useEffect, useState } from "react";
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import Tile from "./Tile";
-import { saveSoloBoard, updateSoloBoard } from "../../../api/soloBoard";
+import SaveBoardModal from "./SaveBoardModal";
+import FindBoardModal from "./FindBoardModal";
+import { useBingoBoard } from "../hooks/useBingoBoard";
+import useDragAndDrop from "../hooks/useDragAndDrop";
 
 // Default tile values if none exist.
 const defaults = {
@@ -26,66 +18,41 @@ const defaults = {
 };
 
 const BingoBoard = () => {
-  // Default to 5 rows and 5 columns.
+  // Grid dimensions
   const [rows, setRows] = useState(5);
   const [columns, setColumns] = useState(5);
-  const [order, setOrder] = useState([]);
-  const [tiles, setTiles] = useState({});
-  const [isExistingBoard, setIsExistingBoard] = useState(false);
 
-  // New states for board name and board password
+  // Board identifiers and modal state
   const [boardName, setBoardName] = useState("");
   const [boardPassword, setBoardPassword] = useState("");
-  const [errorMessage, setErrorMessage] = useState("");
-
-  // States for the modals
-  const [showSavePrompt, setShowSavePrompt] = useState(false);
-  const [showFindBoardPrompt, setShowFindBoardPrompt] = useState(false);
+  const [isExistingBoard, setIsExistingBoard] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showFindModal, setShowFindModal] = useState(false);
   const [findBoardName, setFindBoardName] = useState("");
 
-  // Setup order when rows or columns change
-  useEffect(() => {
-    const totalCells = rows * columns;
-    setOrder(Array.from({ length: totalCells }, (_, index) => index + 1));
-  }, [rows, columns]);
+  // Tiles state
+  const [tiles, setTiles] = useState({});
 
-  // Listen for custom event to open the "find board" modal
-  useEffect(() => {
-    const openFindModal = () => {
-      setShowFindBoardPrompt(true);
-    };
-    window.addEventListener("openFindBoardModal", openFindModal);
-    return () => {
-      window.removeEventListener("openFindBoardModal", openFindModal);
-    };
-  }, []);
+  // API hook for board interactions
+  const { error, fetchBoard, saveBoard, updateBoard } = useBingoBoard();
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  // Drag-and-drop hook; initialize order based on rows * columns
+  const { order, setOrder, sensors, handleDragEnd } = useDragAndDrop(
+    Array.from({ length: rows * columns }, (_, index) => index + 1)
   );
 
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = order.indexOf(Number(active.id));
-    const newIndex = order.indexOf(Number(over.id));
-    setOrder((items) => arrayMove(items, oldIndex, newIndex));
-  };
+  // Update order when grid dimensions change
+  useEffect(() => {
+    setOrder(Array.from({ length: rows * columns }, (_, index) => index + 1));
+  }, [rows, columns, setOrder]);
 
-  // Update board-level tile data from individual Tile updates.
+  // Update tile data from child Tile components
   const handleTileUpdate = (tileId, newData) => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // Show save/update modal when clicking "Save Board" or "Update board"
-  const handleClickSaveBoard = () => {
-    setErrorMessage("");
-    setShowSavePrompt(true);
-  };
-
-  const handleConfirmBoardName = async () => {
-    setErrorMessage("");
-    const boardData = {
+  const handleConfirmSave = async () => {
+    const boardDataToSave = {
       name: boardName,
       password: boardPassword,
       rows,
@@ -93,34 +60,30 @@ const BingoBoard = () => {
       tiles: order.map((tileId) => tiles[tileId] || { ...defaults }),
     };
 
-    try {
-      let result;
-      if (isExistingBoard) {
-        result = await updateSoloBoard(boardData);
-        alert("Board updated successfully!");
-      } else {
-        result = await saveSoloBoard(boardData);
-        alert("Board saved successfully!");
-      }
-      setShowSavePrompt(false);
-    } catch (error) {
-      setErrorMessage(error.response?.data?.error || "An error occurred");
+    if (isExistingBoard) {
+      await updateBoard(boardDataToSave);
+      alert("Board updated successfully!");
+    } else {
+      await saveBoard(boardDataToSave);
+      alert("Board saved successfully!");
     }
+    setShowSaveModal(false);
   };
 
-  // Fetch a board by name and update grid dimensions
-  const handleFindBoard = async () => {
-    try {
-      const res = await axios.get(`/solo-board/${findBoardName}`);
-      const boardData = res.data;
-      // Sort the tiles by position (ascending)
-      const sortedTiles = (boardData.tiles || []).sort(
+  // Handler for finding an existing board
+  const handleConfirmFind = async () => {
+    const data = await fetchBoard(findBoardName);
+    if (data) {
+      setBoardName(findBoardName);
+      setIsExistingBoard(true);
+      setRows(data.rows || 5);
+      setColumns(data.columns || 5);
+      const fetchedTiles = {};
+      const sortedTiles = (data.tiles || []).sort(
         (a, b) => a.position - b.position
       );
-      const newTiles = {};
       sortedTiles.forEach((tile) => {
-        // Use tile.position + 1 for 1-indexed keys
-        newTiles[tile.position + 1] = {
+        fetchedTiles[tile.position + 1] = {
           content: tile.content,
           target: tile.target,
           unit: tile.unit,
@@ -129,16 +92,8 @@ const BingoBoard = () => {
           imageUrl: tile.imageUrl,
         };
       });
-      // Update the board dimensions from the fetched data (fallback to defaults)
-      setRows(boardData.rows || 5);
-      setColumns(boardData.columns || 5);
-      setTiles(newTiles);
-      setBoardName(findBoardName);
-      setIsExistingBoard(true);
-      setShowFindBoardPrompt(false);
-    } catch (err) {
-      console.error("Board not found:", err);
-      alert("Board not found. Please check the board name.");
+      setTiles(fetchedTiles);
+      setShowFindModal(false);
     }
   };
 
@@ -147,9 +102,20 @@ const BingoBoard = () => {
     gridTemplateColumns: `repeat(${columns}, 1fr)`,
   };
 
+  useEffect(() => {
+    const openFindModal = () => {
+      setShowFindModal(true);
+    };
+    window.addEventListener("openFindBoardModal", openFindModal);
+    return () =>
+      window.removeEventListener("openFindBoardModal", openFindModal);
+  }, []);
+
   return (
     <div className="p-4 text-center flex flex-col items-center">
       <h1 className="text-xl font-bold mb-4">Bingo Board</h1>
+
+      {/* Grid dimension controls */}
       <div className="controls flex space-x-4 mb-4">
         <div>
           <label className="block mb-1">Rows:</label>
@@ -171,6 +137,7 @@ const BingoBoard = () => {
         </div>
       </div>
 
+      {/* Board grid with drag-and-drop */}
       <div className="border-2 border-gray-400 bg-gray-100 p-2">
         <DndContext
           sensors={sensors}
@@ -203,117 +170,36 @@ const BingoBoard = () => {
         </DndContext>
       </div>
 
+      {/* Button to open the save/update modal */}
       <div className="mt-4">
         <button
-          onClick={handleClickSaveBoard}
+          onClick={() => setShowSaveModal(true)}
           className="bg-blue-500 text-white p-2 rounded"
         >
           {isExistingBoard ? "Update board" : "Save Board"}
         </button>
       </div>
 
-      {/* Modal for saving/updating board */}
-      {showSavePrompt && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-          onClick={() => setShowSavePrompt(false)}
-        >
-          <div
-            className="bg-white p-4 rounded shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-bold mb-2">
-              {isExistingBoard
-                ? "Enter Board Password to Update Board"
-                : "Enter Board Details"}
-            </h2>
-            {isExistingBoard ? (
-              <>
-                <p className="mb-2">
-                  <strong>Board Name:</strong> {boardName}
-                </p>
-                <input
-                  type="password"
-                  value={boardPassword}
-                  onChange={(e) => setBoardPassword(e.target.value)}
-                  className="border rounded p-1 mb-2 w-full"
-                  placeholder="Enter board password"
-                />
-              </>
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={boardName}
-                  onChange={(e) => setBoardName(e.target.value)}
-                  className="border rounded p-1 mb-2 w-full"
-                  placeholder="e.g. Ironman goals 2025"
-                />
-                <input
-                  type="password"
-                  value={boardPassword}
-                  onChange={(e) => setBoardPassword(e.target.value)}
-                  className="border rounded p-1 mb-2 w-full"
-                  placeholder="Enter board password"
-                />
-              </>
-            )}
-            {errorMessage && (
-              <p className="text-red-500 mb-2">{errorMessage}</p>
-            )}
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowSavePrompt(false)}
-                className="bg-gray-300 p-2 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleConfirmBoardName}
-                className="bg-blue-500 text-white p-2 rounded"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal for finding board */}
-      {showFindBoardPrompt && (
-        <div
-          className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
-          onClick={() => setShowFindBoardPrompt(false)}
-        >
-          <div
-            className="bg-white p-4 rounded shadow-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-lg font-bold mb-2">Enter Board Name to Find</h2>
-            <input
-              type="text"
-              value={findBoardName}
-              onChange={(e) => setFindBoardName(e.target.value)}
-              className="border rounded p-1 mb-2 w-full"
-              placeholder="Board name"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => setShowFindBoardPrompt(false)}
-                className="bg-gray-300 p-2 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleFindBoard}
-                className="bg-green-500 text-white p-2 rounded"
-              >
-                Find Board
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Render modals */}
+      <SaveBoardModal
+        isOpen={showSaveModal}
+        onConfirm={handleConfirmSave}
+        onCancel={() => setShowSaveModal(false)}
+        boardName={boardName}
+        setBoardName={setBoardName}
+        boardPassword={boardPassword}
+        setBoardPassword={setBoardPassword}
+        errorMessage={error}
+        isExistingBoard={isExistingBoard}
+      />
+      <FindBoardModal
+        isOpen={showFindModal}
+        onConfirm={handleConfirmFind}
+        onCancel={() => setShowFindModal(false)}
+        findBoardName={findBoardName}
+        setFindBoardName={setFindBoardName}
+        errorMessage={error}
+      />
     </div>
   );
 };
