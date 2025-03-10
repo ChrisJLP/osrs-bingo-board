@@ -1,7 +1,9 @@
-import React from "react";
+// frontend/src/features/board/components/BoardGrid.jsx
+import React, { useEffect } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
 import Tile from "./Tile";
+import useBoardGridDnD from "../hooks/useBoardGridDnD";
 
 const defaultTileData = {
   content: "",
@@ -11,15 +13,20 @@ const defaultTileData = {
   completed: false,
 };
 
-const BoardGrid = ({
-  rows,
-  columns,
-  order,
-  tiles,
-  onTileUpdate,
-  sensors,
-  handleDragEnd,
-}) => {
+const BoardGrid = ({ rows, columns, tiles, onTileUpdate }) => {
+  // Create the initial order based on the grid dimensions.
+  const initialOrder = Array.from(
+    { length: rows * columns },
+    (_, index) => index + 1
+  );
+  const { order, setOrder, sensors, handleDragEnd } =
+    useBoardGridDnD(initialOrder);
+
+  // Update order if grid dimensions change.
+  useEffect(() => {
+    setOrder(Array.from({ length: rows * columns }, (_, index) => index + 1));
+  }, [rows, columns, setOrder]);
+
   const gridStyle = {
     gridTemplateRows: `repeat(${rows}, 1fr)`,
     gridTemplateColumns: `repeat(${columns}, 1fr)`,
