@@ -1,71 +1,72 @@
-// frontend/src/features/board/hooks/useTileEditor.js
-import { useState } from "react";
+// frontend/src/hooks/useTileEditor.js
+import { useState, useRef } from "react";
 
-const useTileEditor = (initialData = {}) => {
-  // Initialize content and criteria from initialData
-  const [content, setContent] = useState(initialData.content || "");
-  const [criteria, setCriteria] = useState({
-    target: initialData.target || 0,
-    unit: initialData.unit || "drops",
-    progress: initialData.progress || 0,
+const useTileEditor = (initialData) => {
+  // Store original values in a ref to reset later.
+  const initialValues = useRef({
+    content: initialData.content || "",
+    criteria: {
+      target: initialData.target || 0,
+      unit: initialData.unit || "drops",
+      progress: initialData.progress || 0,
+    },
   });
-  // Editing mode: "wiki" or "custom"
-  const [mode, setMode] = useState("wiki");
-  // Dirty flag indicates unsaved changes
+
+  // State management
+  const [content, setContent] = useState(initialValues.current.content);
+  const [criteria, setCriteria] = useState(initialValues.current.criteria);
+  const [mode, setMode] = useState("wiki"); // "wiki" or "custom"
   const [dirty, setDirty] = useState(false);
-  // Controls whether a warning about unsaved changes is shown
   const [showWarning, setShowWarning] = useState(false);
 
-  // Handler to update content and mark as dirty
+  // Handler functions
   const handleContentChange = (newContent) => {
     setContent(newContent);
     setDirty(true);
   };
 
-  // Handler to update criteria and mark as dirty
   const handleCriteriaChange = (newCriteria) => {
     setCriteria(newCriteria);
     setDirty(true);
   };
 
-  // Handler to change editing mode and mark as dirty
   const handleModeChange = (newMode) => {
     setMode(newMode);
     setDirty(true);
   };
 
-  // When saving, return the updated tile data and clear the dirty flag
   const handleSave = () => {
     setDirty(false);
     setShowWarning(false);
     return { content, ...criteria };
   };
 
-  // Cancel editing and reset state to the initial values
   const handleCancel = () => {
-    setContent(initialData.content || "");
-    setCriteria({
-      target: initialData.target || 0,
-      unit: initialData.unit || "drops",
-      progress: initialData.progress || 0,
-    });
+    setContent(initialValues.current.content);
+    setCriteria(initialValues.current.criteria);
     setDirty(false);
     setShowWarning(false);
   };
 
-  // Warning actions for unsaved changes
-  const saveChanges = () => {
+  const handleBackdropClick = (onCancel) => {
+    if (dirty) {
+      setShowWarning(true);
+    } else if (typeof onCancel === "function") {
+      onCancel();
+    }
+  };
+
+  const handleWarningSave = () => {
     setShowWarning(false);
     return handleSave();
   };
 
-  const discardChanges = () => {
+  const handleWarningDiscard = () => {
     setShowWarning(false);
     handleCancel();
   };
 
-  const goBack = () => {
-    // Simply hide the warning, let the user continue editing
+  const handleWarningGoBack = () => {
     setShowWarning(false);
   };
 
@@ -75,15 +76,15 @@ const useTileEditor = (initialData = {}) => {
     mode,
     dirty,
     showWarning,
-    setShowWarning,
     handleContentChange,
     handleCriteriaChange,
     handleModeChange,
     handleSave,
     handleCancel,
-    saveChanges,
-    discardChanges,
-    goBack,
+    handleBackdropClick,
+    handleWarningSave,
+    handleWarningDiscard,
+    handleWarningGoBack,
   };
 };
 
