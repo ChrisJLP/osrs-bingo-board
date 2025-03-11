@@ -1,4 +1,3 @@
-// frontend/src/features/board/components/SaveBoardModal.jsx
 import React from "react";
 
 const SaveBoardModal = ({
@@ -7,10 +6,12 @@ const SaveBoardModal = ({
   onCancel,
   boardName,
   setBoardName,
-  boardTitle, // new prop for board title
-  setBoardTitle, // new prop setter for board title
+  boardTitle,
+  setBoardTitle,
   boardPassword,
   setBoardPassword,
+  osrsUsername, // OSRS username value
+  setOsrsUsername, // setter function for OSRS username
   errorMessage,
   isExistingBoard,
 }) => {
@@ -52,6 +53,17 @@ const SaveBoardModal = ({
               className="border rounded p-1 mb-2 w-full"
               placeholder="Enter board password"
             />
+            {/* OSRS username input */}
+            <div className="mb-2">
+              <label className="block mb-1">OSRS Username (optional):</label>
+              <input
+                type="text"
+                value={osrsUsername}
+                onChange={(e) => setOsrsUsername(e.target.value)}
+                className="border rounded p-1 w-full"
+                placeholder="e.g. RuneScapePlayer123"
+              />
+            </div>
           </>
         ) : (
           <>
@@ -78,6 +90,16 @@ const SaveBoardModal = ({
               className="border rounded p-1 mb-2 w-full"
               placeholder="Enter board password"
             />
+            {/* OSRS username input */}
+            <div className="mb-2">
+              <input
+                type="text"
+                value={osrsUsername}
+                onChange={(e) => setOsrsUsername(e.target.value)}
+                className="border rounded p-1 mb-2 w-full"
+                placeholder="OSRS Username (optional)"
+              />
+            </div>
           </>
         )}
         {errorMessage && <p className="text-red-500 mb-2">{errorMessage}</p>}

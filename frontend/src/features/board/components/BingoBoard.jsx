@@ -1,4 +1,3 @@
-// frontend/src/features/board/components/BingoBoard.jsx
 import React from "react";
 import SaveBoardModal from "./SaveBoardModal";
 import FindBoardModal from "./FindBoardModal";
@@ -18,6 +17,8 @@ const BingoBoard = () => {
     setBoardTitle,
     boardPassword,
     setBoardPassword,
+    osrsUsername, // OSRS username state
+    setOsrsUsername, // OSRS username setter
     isExistingBoard,
     showSaveModal,
     setShowSaveModal,
@@ -27,7 +28,7 @@ const BingoBoard = () => {
     setFindBoardName,
     tiles,
     order,
-    setOrder, // parent's order setter is our wrapped handleOrderChange (which records undo/redo)
+    setOrder,
     error,
     handleTileUpdate,
     confirmSave,
@@ -38,9 +39,7 @@ const BingoBoard = () => {
 
   return (
     <div className="p-4 text-center flex flex-col items-center">
-      {/* Header displays the board title */}
       <h1 className="text-xl font-bold mb-4">{boardTitle}</h1>
-
       <div className="w-full flex justify-between items-center mb-2">
         <BoardControls
           rows={rows}
@@ -48,7 +47,6 @@ const BingoBoard = () => {
           onRowsChange={setRows}
           onColumnsChange={setColumns}
         />
-        {/* Undo and Redo buttons in the top right */}
         <div className="flex space-x-2">
           <button onClick={undo} className="bg-gray-200 text-black p-2 rounded">
             Undo
@@ -58,16 +56,14 @@ const BingoBoard = () => {
           </button>
         </div>
       </div>
-
       <BoardGrid
         rows={rows}
         columns={columns}
         tiles={tiles}
         onTileUpdate={handleTileUpdate}
-        order={order} // pass parent's order state
-        onOrderChange={setOrder} // pass parent's order setter
+        order={order}
+        onOrderChange={setOrder}
       />
-
       <div className="mt-4">
         <button
           onClick={() => setShowSaveModal(true)}
@@ -76,7 +72,6 @@ const BingoBoard = () => {
           {isExistingBoard ? "Update board" : "Save Board"}
         </button>
       </div>
-
       <SaveBoardModal
         isOpen={showSaveModal}
         onConfirm={confirmSave}
@@ -87,10 +82,11 @@ const BingoBoard = () => {
         setBoardTitle={setBoardTitle}
         boardPassword={boardPassword}
         setBoardPassword={setBoardPassword}
+        osrsUsername={osrsUsername} // pass OSRS username state
+        setOsrsUsername={setOsrsUsername} // pass OSRS username setter
         errorMessage={error}
         isExistingBoard={isExistingBoard}
       />
-
       <FindBoardModal
         isOpen={showFindModal}
         onConfirm={handleConfirmFind}

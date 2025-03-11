@@ -1,4 +1,3 @@
-// frontend/src/features/board/hooks/useBingoBoardLogic.js
 import { useState, useEffect } from "react";
 import { useBingoBoard } from "./useBingoBoard";
 
@@ -15,8 +14,9 @@ const useBingoBoardLogic = () => {
   const [rows, setRows] = useState(5);
   const [columns, setColumns] = useState(5);
   const [boardName, setBoardName] = useState("");
-  const [boardTitle, setBoardTitle] = useState("Bingo Board"); // board title state
+  const [boardTitle, setBoardTitle] = useState("Bingo Board");
   const [boardPassword, setBoardPassword] = useState("");
+  const [osrsUsername, setOsrsUsername] = useState(""); // OSRS username state
   const [isExistingBoard, setIsExistingBoard] = useState(false);
 
   // Modal visibility
@@ -24,20 +24,19 @@ const useBingoBoardLogic = () => {
   const [showFindModal, setShowFindModal] = useState(false);
   const [findBoardName, setFindBoardName] = useState("");
 
-  // Tiles state and order for board layout
+  // Tiles and order
   const [tiles, setTiles] = useState({});
   const [order, setOrder] = useState(
     Array.from({ length: 5 * 5 }, (_, index) => index + 1)
   );
 
-  // API interactions from useBingoBoard hook
+  // API interactions
   const { error, fetchBoard, saveBoard, updateBoard } = useBingoBoard();
 
-  // Undo/Redo stacks for board state (rows, columns, tiles, order)
+  // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
 
-  // Event listener to open the "Find Board" modal
   useEffect(() => {
     const openFindModal = () => setShowFindModal(true);
     window.addEventListener("openFindBoardModal", openFindModal);
@@ -45,14 +44,12 @@ const useBingoBoardLogic = () => {
       window.removeEventListener("openFindBoardModal", openFindModal);
   }, []);
 
-  // Save snapshot of current board state
   const saveCurrentState = () => {
     const snapshot = { rows, columns, tiles, order };
     setUndoStack((prev) => [...prev, snapshot]);
-    setRedoStack([]); // clear redo stack on new action
+    setRedoStack([]);
   };
 
-  // Wrapped state change functions
   const handleRowsChange = (newRows) => {
     saveCurrentState();
     setRows(newRows);
@@ -73,12 +70,12 @@ const useBingoBoardLogic = () => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // Save (or update) board handler remains the same except including boardTitle
   const confirmSave = async () => {
     const boardDataToSave = {
       name: boardName,
       password: boardPassword,
       title: boardTitle,
+      osrsUsername, // include OSRS username in payload
       rows,
       columns,
       tiles: order.map(
@@ -103,7 +100,6 @@ const useBingoBoardLogic = () => {
     }
   };
 
-  // Handler to fetch an existing board.
   const handleConfirmFind = async () => {
     const data = await fetchBoard(findBoardName);
     if (data) {
@@ -127,13 +123,11 @@ const useBingoBoardLogic = () => {
         });
       setTiles(fetchedTiles);
       setShowFindModal(false);
-      // Clear undo/redo stacks when loading a board.
       setUndoStack([]);
       setRedoStack([]);
     }
   };
 
-  // Undo: restore last snapshot from undoStack
   const undo = () => {
     if (undoStack.length === 0) return;
     const lastSnapshot = undoStack[undoStack.length - 1];
@@ -146,7 +140,6 @@ const useBingoBoardLogic = () => {
     setOrder(lastSnapshot.order);
   };
 
-  // Redo: restore last snapshot from redoStack
   const redo = () => {
     if (redoStack.length === 0) return;
     const lastSnapshot = redoStack[redoStack.length - 1];
@@ -170,8 +163,9 @@ const useBingoBoardLogic = () => {
     setBoardTitle,
     boardPassword,
     setBoardPassword,
+    osrsUsername, // expose OSRS username
+    setOsrsUsername, // expose its setter
     isExistingBoard,
-    setIsExistingBoard,
     showSaveModal,
     setShowSaveModal,
     showFindModal,
