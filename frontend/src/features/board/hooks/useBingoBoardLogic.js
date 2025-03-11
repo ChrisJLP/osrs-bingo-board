@@ -1,4 +1,3 @@
-// frontend/src/hooks/useBingoBoardLogic.js
 import { useState, useEffect } from "react";
 import { useBingoBoard } from "./useBingoBoard";
 
@@ -58,14 +57,22 @@ const useBingoBoardLogic = () => {
       ),
     };
 
+    let response = null;
     if (isExistingBoard) {
-      await updateBoard(boardDataToSave);
-      alert("Board updated successfully!");
+      response = await updateBoard(boardDataToSave);
+      if (response) {
+        alert("Board updated successfully!");
+        setShowSaveModal(false);
+      }
     } else {
-      await saveBoard(boardDataToSave);
-      alert("Board saved successfully!");
+      response = await saveBoard(boardDataToSave);
+      if (response) {
+        alert("Board saved successfully!");
+        setShowSaveModal(false);
+      }
     }
-    setShowSaveModal(false);
+    // Optionally, you can add additional error handling here
+    // for cases when response is null.
   };
 
   // Handler to fetch an existing board.

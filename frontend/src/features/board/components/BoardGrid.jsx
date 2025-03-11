@@ -1,4 +1,3 @@
-// frontend/src/features/board/components/BoardGrid.jsx
 import React, { useEffect } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
@@ -13,7 +12,7 @@ const defaultTileData = {
   completed: false,
 };
 
-const BoardGrid = ({ rows, columns, tiles, onTileUpdate }) => {
+const BoardGrid = ({ rows, columns, tiles, onTileUpdate, onOrderChange }) => {
   // Create the initial order based on the grid dimensions.
   const initialOrder = Array.from(
     { length: rows * columns },
@@ -26,6 +25,13 @@ const BoardGrid = ({ rows, columns, tiles, onTileUpdate }) => {
   useEffect(() => {
     setOrder(Array.from({ length: rows * columns }, (_, index) => index + 1));
   }, [rows, columns, setOrder]);
+
+  // Propagate the local order change to the parent.
+  useEffect(() => {
+    if (onOrderChange) {
+      onOrderChange(order);
+    }
+  }, [order, onOrderChange]);
 
   const gridStyle = {
     gridTemplateRows: `repeat(${rows}, 1fr)`,
