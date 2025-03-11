@@ -1,3 +1,4 @@
+// backend/src/controllers/soloBoardController.js
 import bcrypt from "bcrypt";
 import prisma from "../config/db.js";
 
@@ -9,7 +10,6 @@ function parseHiscoresData(textData) {
       `Unexpected hiscores data format: expected at least 24 lines but got ${lines.length}`
     );
   }
-  // Use only the first 24 lines (ignoring extra boss/kill data)
   lines = lines.slice(0, 24);
   const skills = [
     "overall",
@@ -33,16 +33,14 @@ function parseHiscoresData(textData) {
     "thieving",
     "slayer",
     "farming",
-    "runecrafting", // will be mapped to "runecraft"
+    "runecrafting", // map to runecraft
     "hunter",
     "construction",
   ];
   const result = {};
-  // Process Overall (line 0)
   const overallParts = lines[0].split(",");
   result.overallLevel = parseInt(overallParts[1], 10);
   result.overallXp = parseInt(overallParts[2], 10);
-  // Process individual skills (lines 1 to 23)
   for (let i = 1; i < skills.length; i++) {
     const parts = lines[i].split(",");
     const fieldName = skills[i] === "runecrafting" ? "runecraft" : skills[i];
@@ -51,37 +49,55 @@ function parseHiscoresData(textData) {
   return result;
 }
 
-async function fetchAndValidateHiscores(osrsUsername, res) {
-  try {
-    const hiscoreUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(
-      osrsUsername
-    )}`;
-    const response = await fetch(hiscoreUrl, {
-      headers: {
-        "User-Agent": "OSRS Bingo App (your_email@example.com)",
-      },
-    });
-    if (!response.ok) {
-      return res
-        .status(400)
-        .json({ error: "Failed to fetch hiscores for provided username" });
-    }
-    const textData = await response.text();
-    const lines = textData.split("\n").filter((line) => line.trim().length > 0);
-    if (lines.length < 24) {
-      return res.status(400).json({ error: "Invalid OSRS username provided" });
-    }
-    const hiscores = parseHiscoresData(textData);
+// Helper to obtain hiscores data. If osrsData is provided in the request body, use it.
+// Otherwise, fetch from the hiscores API.
+async function getHiscores(req, res, osrsUsername) {
+  if (req.body.osrsData) {
+    const hiscores = req.body.osrsData;
     const allInvalid = Object.values(hiscores).every((val) => val === -1);
     if (allInvalid) {
-      return res.status(400).json({ error: "Invalid OSRS username provided" });
+      res.status(400).json({ error: "Invalid OSRS username provided" });
+      return null;
     }
     return hiscores;
-  } catch (apiError) {
-    console.error("Error fetching OSRS hiscores:", apiError);
-    return res
-      .status(400)
-      .json({ error: "Error fetching hiscores for provided username" });
+  } else {
+    try {
+      const hiscoreUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(
+        osrsUsername
+      )}`;
+      const response = await fetch(hiscoreUrl, {
+        headers: {
+          "User-Agent": "OSRS Bingo App (your_email@example.com)",
+        },
+      });
+      if (!response.ok) {
+        res.status(400).json({
+          error: "Failed to fetch hiscores for provided username",
+        });
+        return null;
+      }
+      const textData = await response.text();
+      const lines = textData
+        .split("\n")
+        .filter((line) => line.trim().length > 0);
+      if (lines.length < 24) {
+        res.status(400).json({ error: "Invalid OSRS username provided" });
+        return null;
+      }
+      const hiscores = parseHiscoresData(textData);
+      const allInvalid = Object.values(hiscores).every((val) => val === -1);
+      if (allInvalid) {
+        res.status(400).json({ error: "Invalid OSRS username provided" });
+        return null;
+      }
+      return hiscores;
+    } catch (apiError) {
+      console.error("Error fetching OSRS hiscores:", apiError);
+      res
+        .status(400)
+        .json({ error: "Error fetching hiscores for provided username" });
+      return null;
+    }
   }
 }
 
@@ -95,23 +111,12 @@ export const createSoloBoard = async (req, res) => {
       password,
       osrsUsername,
     } = req.body;
-
-    // If an OSRS username is provided, validate it first.
-    let hiscores = null;
-    if (osrsUsername) {
-      const result = await fetchAndValidateHiscores(osrsUsername, res);
-      // If the result is an Express response, then an error was already sent.
-      if (result?.headersSent) return;
-      hiscores = result;
-    }
-
     const existingBoard = await prisma.soloBoard.findUnique({
       where: { name },
     });
     if (existingBoard) {
       return res.status(409).json({ error: "Board name already taken" });
     }
-
     const hashedPassword = await bcrypt.hash(password, 10);
     const board = await prisma.soloBoard.create({
       data: {
@@ -133,9 +138,9 @@ export const createSoloBoard = async (req, res) => {
         },
       },
     });
-
-    if (osrsUsername && hiscores) {
-      // Create or update the player record.
+    if (osrsUsername) {
+      const hiscores = await getHiscores(req, res, osrsUsername);
+      if (!hiscores) return; // error already sent
       let playerRecord = await prisma.player.findUnique({
         where: { username: osrsUsername },
       });
@@ -202,16 +207,16 @@ export const createSoloBoard = async (req, res) => {
           },
         });
       }
-      // Associate the player record with the board.
+      // Associate the player record with this board.
       await prisma.soloBoard.update({
         where: { id: board.id },
         data: { playerId: playerRecord.id },
       });
     }
-
-    return res
-      .status(201)
-      .json({ message: "Solo board created successfully", boardId: board.id });
+    return res.status(201).json({
+      message: "Solo board created successfully",
+      boardId: board.id,
+    });
   } catch (error) {
     console.error("Error creating solo board:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -228,7 +233,6 @@ export const getSoloBoard = async (req, res) => {
     if (!board) {
       return res.status(404).json({ error: "Board not found" });
     }
-    // Convert BigInt values to strings for safe JSON serialization.
     const safeBoard = JSON.parse(
       JSON.stringify(board, (key, value) =>
         typeof value === "bigint" ? value.toString() : value
@@ -253,7 +257,6 @@ export const updateSoloBoard = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Incorrect board password" });
     }
-    // Remove old tiles and update board details.
     await prisma.soloTile.deleteMany({ where: { boardId: board.id } });
     const updatedBoard = await prisma.soloBoard.update({
       where: { name },
@@ -276,9 +279,8 @@ export const updateSoloBoard = async (req, res) => {
     });
 
     if (osrsUsername) {
-      let hiscores = await fetchAndValidateHiscores(osrsUsername, res);
-      // If an error was returned from fetchAndValidateHiscores, stop here.
-      if (hiscores?.headersSent) return;
+      const hiscores = await getHiscores(req, res, osrsUsername);
+      if (!hiscores) return;
       const playerRecord = await prisma.player.upsert({
         where: { username: osrsUsername },
         update: {
@@ -337,18 +339,15 @@ export const updateSoloBoard = async (req, res) => {
           constructionXp: BigInt(hiscores.constructionXp),
         },
       });
-      // Update the board to reference the player record.
       await prisma.soloBoard.update({
         where: { id: board.id },
         data: { playerId: playerRecord.id },
       });
     }
-    return res
-      .status(200)
-      .json({
-        message: "Board updated successfully",
-        boardId: updatedBoard.id,
-      });
+    return res.status(200).json({
+      message: "Board updated successfully",
+      boardId: updatedBoard.id,
+    });
   } catch (error) {
     console.error("Error updating board:", error);
     return res.status(500).json({ error: "Internal server error" });
