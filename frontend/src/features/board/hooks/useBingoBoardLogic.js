@@ -37,6 +37,14 @@ const useBingoBoardLogic = () => {
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
 
+  // Event listener to open the "Find Board" modal
+  useEffect(() => {
+    const openFindModal = () => setShowFindModal(true);
+    window.addEventListener("openFindBoardModal", openFindModal);
+    return () =>
+      window.removeEventListener("openFindBoardModal", openFindModal);
+  }, []);
+
   // Save snapshot of current board state
   const saveCurrentState = () => {
     const snapshot = { rows, columns, tiles, order };
@@ -95,7 +103,7 @@ const useBingoBoardLogic = () => {
     }
   };
 
-  // Fetch board handler
+  // Handler to fetch an existing board.
   const handleConfirmFind = async () => {
     const data = await fetchBoard(findBoardName);
     if (data) {
@@ -119,7 +127,7 @@ const useBingoBoardLogic = () => {
         });
       setTiles(fetchedTiles);
       setShowFindModal(false);
-      // Optionally, clear undo/redo stacks when loading a board.
+      // Clear undo/redo stacks when loading a board.
       setUndoStack([]);
       setRedoStack([]);
     }

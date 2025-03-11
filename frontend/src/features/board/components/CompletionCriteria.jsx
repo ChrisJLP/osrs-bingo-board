@@ -30,10 +30,26 @@ const CompletionCriteria = ({ value, onChange }) => {
   const handleTargetBlur = () => {
     const parsed = parseShorthand(targetStr);
     const newTarget = isNaN(parsed) ? 0 : parsed;
-    // Ensure progress does not exceed the new target.
-    const newProgress = value.progress > newTarget ? newTarget : value.progress;
-    onChange({ ...value, target: newTarget, progress: newProgress });
-    setTargetStr(newTarget.toString());
+    if (value.progress > newTarget) {
+      const confirmed = window.confirm(
+        "The new target is below the current progress. If you proceed, progress will be set equal to the new target. Do you want to continue?"
+      );
+      if (!confirmed) {
+        // Revert input to previous target if user cancels.
+        setTargetStr(value.target.toString());
+        return;
+      } else {
+        // If confirmed, update target and set progress equal to the new target.
+        onChange({ ...value, target: newTarget, progress: newTarget });
+        setTargetStr(newTarget.toString());
+        return;
+      }
+    } else {
+      const newProgress =
+        value.progress > newTarget ? newTarget : value.progress;
+      onChange({ ...value, target: newTarget, progress: newProgress });
+      setTargetStr(newTarget.toString());
+    }
   };
 
   const handleProgressBlur = () => {
