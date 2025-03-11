@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "SoloBoard" ALTER COLUMN "name" SET DATA TYPE CITEXT;

@@ -9,7 +9,7 @@ datasource db {
 
 model SoloBoard {
   id        String     @id @default(uuid())
-  name      String     @unique
+  name      String     @unique @db.Citext
   password  String     @db.Text
   title     String?    @db.VarChar(255)
   createdAt DateTime   @default(now())
