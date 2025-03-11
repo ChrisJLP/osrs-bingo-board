@@ -7,6 +7,8 @@ const SaveBoardModal = ({
   onCancel,
   boardName,
   setBoardName,
+  boardTitle, // new prop for board title
+  setBoardTitle, // new prop setter for board title
   boardPassword,
   setBoardPassword,
   errorMessage,
@@ -25,7 +27,7 @@ const SaveBoardModal = ({
       >
         <h2 className="text-lg font-bold mb-2">
           {isExistingBoard
-            ? "Enter Board Password to Update Board"
+            ? "Enter Board Details to Update Board"
             : "Enter Board Details"}
         </h2>
         {isExistingBoard ? (
@@ -33,6 +35,16 @@ const SaveBoardModal = ({
             <p className="mb-2">
               <strong>Board Name:</strong> {boardName}
             </p>
+            <div className="mb-2">
+              <label className="block mb-1">Board Title:</label>
+              <input
+                type="text"
+                value={boardTitle}
+                onChange={(e) => setBoardTitle(e.target.value)}
+                className="border rounded p-1 w-full"
+                placeholder="Bingo Board"
+              />
+            </div>
             <input
               type="password"
               value={boardPassword}
@@ -50,6 +62,15 @@ const SaveBoardModal = ({
               className="border rounded p-1 mb-2 w-full"
               placeholder="e.g. Ironman goals 2025"
             />
+            <div className="mb-2">
+              <input
+                type="text"
+                value={boardTitle}
+                onChange={(e) => setBoardTitle(e.target.value)}
+                className="border rounded p-1 mb-2 w-full"
+                placeholder="Bingo Board"
+              />
+            </div>
             <input
               type="password"
               value={boardPassword}

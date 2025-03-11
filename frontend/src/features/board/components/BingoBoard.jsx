@@ -14,6 +14,8 @@ const BingoBoard = () => {
     setColumns,
     boardName,
     setBoardName,
+    boardTitle, // added boardTitle
+    setBoardTitle, // added setBoardTitle
     boardPassword,
     setBoardPassword,
     isExistingBoard,
@@ -34,7 +36,9 @@ const BingoBoard = () => {
 
   return (
     <div className="p-4 text-center flex flex-col items-center">
-      <h1 className="text-xl font-bold mb-4">Bingo Board</h1>
+      {/* Use the boardTitle state here */}
+      <h1 className="text-xl font-bold mb-4">{boardTitle}</h1>
+
       <BoardControls
         rows={rows}
         columns={columns}
@@ -46,7 +50,6 @@ const BingoBoard = () => {
         columns={columns}
         tiles={tiles}
         onTileUpdate={handleTileUpdate}
-        // Pass the order state so that BoardGrid can update it via a callback (assumes BoardGrid supports onOrderChange)
         onOrderChange={setOrder}
       />
       <div className="mt-4">
@@ -63,6 +66,8 @@ const BingoBoard = () => {
         onCancel={() => setShowSaveModal(false)}
         boardName={boardName}
         setBoardName={setBoardName}
+        boardTitle={boardTitle} // pass boardTitle to modal
+        setBoardTitle={setBoardTitle} // pass its setter
         boardPassword={boardPassword}
         setBoardPassword={setBoardPassword}
         errorMessage={error}

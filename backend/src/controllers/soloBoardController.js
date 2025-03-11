@@ -1,3 +1,4 @@
+// backend/controllers/soloBoardController.js
 import bcrypt from "bcrypt";
 import prisma from "../config/db.js";
 
@@ -17,7 +18,7 @@ export const createSoloBoard = async (req, res) => {
       data: {
         name,
         password: hashedPassword,
-        title: req.body.title || "Test Board Title",
+        title: req.body.title || "Bingo Board", // default updated here
         rows,
         columns,
         tiles: {
@@ -44,7 +45,6 @@ export const createSoloBoard = async (req, res) => {
   }
 };
 
-// controllers/soloBoardController.js
 export const getSoloBoard = async (req, res) => {
   try {
     const { name } = req.params;
@@ -83,12 +83,13 @@ export const updateSoloBoard = async (req, res) => {
       where: { boardId: board.id },
     });
 
-    // Update board dimensions (rows and columns) and re-create the tiles
+    // Update board dimensions, title, and re-create the tiles
     const updatedBoard = await prisma.soloBoard.update({
       where: { name },
       data: {
         rows,
         columns,
+        title: req.body.title, // update title with new value
         tiles: {
           create: tiles.map((tile, index) => ({
             position: index,

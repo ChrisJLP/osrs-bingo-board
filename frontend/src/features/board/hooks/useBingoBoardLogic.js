@@ -1,3 +1,4 @@
+// frontend/src/features/board/hooks/useBingoBoardLogic.js
 import { useState, useEffect } from "react";
 import { useBingoBoard } from "./useBingoBoard";
 
@@ -14,6 +15,7 @@ const useBingoBoardLogic = () => {
   const [rows, setRows] = useState(5);
   const [columns, setColumns] = useState(5);
   const [boardName, setBoardName] = useState("");
+  const [boardTitle, setBoardTitle] = useState("Bingo Board"); // new title state with default
   const [boardPassword, setBoardPassword] = useState("");
   const [isExistingBoard, setIsExistingBoard] = useState(false);
 
@@ -49,6 +51,7 @@ const useBingoBoardLogic = () => {
     const boardDataToSave = {
       name: boardName,
       password: boardPassword,
+      title: boardTitle, // include the title
       rows,
       columns,
       tiles: order.map(
@@ -71,8 +74,6 @@ const useBingoBoardLogic = () => {
         setShowSaveModal(false);
       }
     }
-    // Optionally, you can add additional error handling here
-    // for cases when response is null.
   };
 
   // Handler to fetch an existing board.
@@ -83,6 +84,7 @@ const useBingoBoardLogic = () => {
       setIsExistingBoard(true);
       setRows(data.rows || 5);
       setColumns(data.columns || 5);
+      setBoardTitle(data.title || "Bingo Board"); // update title from fetched board
       const fetchedTiles = {};
       (data.tiles || [])
         .sort((a, b) => a.position - b.position)
@@ -109,6 +111,8 @@ const useBingoBoardLogic = () => {
     setColumns,
     boardName,
     setBoardName,
+    boardTitle, // added boardTitle
+    setBoardTitle, // added setter for boardTitle
     boardPassword,
     setBoardPassword,
     isExistingBoard,
