@@ -16,7 +16,8 @@ model SoloBoard {
   rows      Int        @default(5)
   columns   Int        @default(5)
   tiles     SoloTile[]
-  player    Player? // Optional relation to store OSRS hiscores data
+  playerId  String? // optional foreign key to Player
+  player    Player?    @relation(fields: [playerId], references: [id])
 }
 
 model SoloTile {
@@ -33,36 +34,35 @@ model SoloTile {
 }
 
 model Player {
-  id             String    @id @default(uuid())
-  username       String    @unique @db.VarChar(255)
+  id             String      @id @default(uuid())
+  username       String      @unique @db.VarChar(255)
   overallLevel   Int
-  overallXp      Int
-  attackXp       Int
-  defenceXp      Int
-  strengthXp     Int
-  hitpointsXp    Int
-  rangedXp       Int
-  prayerXp       Int
-  magicXp        Int
-  cookingXp      Int
-  woodcuttingXp  Int
-  fletchingXp    Int
-  fishingXp      Int
-  firemakingXp   Int
-  craftingXp     Int
-  smithingXp     Int
-  miningXp       Int
-  herbloreXp     Int
-  agilityXp      Int
-  thievingXp     Int
-  slayerXp       Int
-  farmingXp      Int
-  runecraftXp    Int
-  hunterXp       Int
-  constructionXp Int
-  createdAt      DateTime  @default(now())
-  boardId        String    @unique
-  board          SoloBoard @relation(fields: [boardId], references: [id])
+  overallXp      BigInt      @db.BigInt
+  attackXp       BigInt      @db.BigInt
+  defenceXp      BigInt      @db.BigInt
+  strengthXp     BigInt      @db.BigInt
+  hitpointsXp    BigInt      @db.BigInt
+  rangedXp       BigInt      @db.BigInt
+  prayerXp       BigInt      @db.BigInt
+  magicXp        BigInt      @db.BigInt
+  cookingXp      BigInt      @db.BigInt
+  woodcuttingXp  BigInt      @db.BigInt
+  fletchingXp    BigInt      @db.BigInt
+  fishingXp      BigInt      @db.BigInt
+  firemakingXp   BigInt      @db.BigInt
+  craftingXp     BigInt      @db.BigInt
+  smithingXp     BigInt      @db.BigInt
+  miningXp       BigInt      @db.BigInt
+  herbloreXp     BigInt      @db.BigInt
+  agilityXp      BigInt      @db.BigInt
+  thievingXp     BigInt      @db.BigInt
+  slayerXp       BigInt      @db.BigInt
+  farmingXp      BigInt      @db.BigInt
+  runecraftXp    BigInt      @db.BigInt
+  hunterXp       BigInt      @db.BigInt
+  constructionXp BigInt      @db.BigInt
+  createdAt      DateTime    @default(now())
+  boards         SoloBoard[] // one-to-many relation: one player can have many boards
 }
 
 // model MainBoard {

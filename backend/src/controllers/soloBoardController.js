@@ -33,7 +33,7 @@ function parseHiscoresData(textData) {
     "thieving",
     "slayer",
     "farming",
-    "runecrafting", // This will be mapped to "runecraft"
+    "runecrafting", // will be mapped to "runecraft"
     "hunter",
     "construction",
   ];
@@ -45,11 +45,44 @@ function parseHiscoresData(textData) {
   // Process individual skills (lines 1 to 23)
   for (let i = 1; i < skills.length; i++) {
     const parts = lines[i].split(",");
-    // Map "runecrafting" to "runecraft" to match the Prisma field name
     const fieldName = skills[i] === "runecrafting" ? "runecraft" : skills[i];
     result[`${fieldName}Xp`] = parseInt(parts[2], 10);
   }
   return result;
+}
+
+async function fetchAndValidateHiscores(osrsUsername, res) {
+  try {
+    const hiscoreUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(
+      osrsUsername
+    )}`;
+    const response = await fetch(hiscoreUrl, {
+      headers: {
+        "User-Agent": "OSRS Bingo App (your_email@example.com)",
+      },
+    });
+    if (!response.ok) {
+      return res
+        .status(400)
+        .json({ error: "Failed to fetch hiscores for provided username" });
+    }
+    const textData = await response.text();
+    const lines = textData.split("\n").filter((line) => line.trim().length > 0);
+    if (lines.length < 24) {
+      return res.status(400).json({ error: "Invalid OSRS username provided" });
+    }
+    const hiscores = parseHiscoresData(textData);
+    const allInvalid = Object.values(hiscores).every((val) => val === -1);
+    if (allInvalid) {
+      return res.status(400).json({ error: "Invalid OSRS username provided" });
+    }
+    return hiscores;
+  } catch (apiError) {
+    console.error("Error fetching OSRS hiscores:", apiError);
+    return res
+      .status(400)
+      .json({ error: "Error fetching hiscores for provided username" });
+  }
 }
 
 export const createSoloBoard = async (req, res) => {
@@ -62,12 +95,23 @@ export const createSoloBoard = async (req, res) => {
       password,
       osrsUsername,
     } = req.body;
+
+    // If an OSRS username is provided, validate it first.
+    let hiscores = null;
+    if (osrsUsername) {
+      const result = await fetchAndValidateHiscores(osrsUsername, res);
+      // If the result is an Express response, then an error was already sent.
+      if (result?.headersSent) return;
+      hiscores = result;
+    }
+
     const existingBoard = await prisma.soloBoard.findUnique({
       where: { name },
     });
     if (existingBoard) {
       return res.status(409).json({ error: "Board name already taken" });
     }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const board = await prisma.soloBoard.create({
       data: {
@@ -89,75 +133,85 @@ export const createSoloBoard = async (req, res) => {
         },
       },
     });
-    if (osrsUsername) {
-      try {
-        const hiscoreUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(
-          osrsUsername
-        )}`;
-        const response = await fetch(hiscoreUrl, {
-          headers: {
-            "User-Agent": "OSRS Bingo App (your_email@example.com)",
+
+    if (osrsUsername && hiscores) {
+      // Create or update the player record.
+      let playerRecord = await prisma.player.findUnique({
+        where: { username: osrsUsername },
+      });
+      if (playerRecord) {
+        playerRecord = await prisma.player.update({
+          where: { username: osrsUsername },
+          data: {
+            overallLevel: hiscores.overallLevel,
+            overallXp: BigInt(hiscores.overallXp),
+            attackXp: BigInt(hiscores.attackXp),
+            defenceXp: BigInt(hiscores.defenceXp),
+            strengthXp: BigInt(hiscores.strengthXp),
+            hitpointsXp: BigInt(hiscores.hitpointsXp),
+            rangedXp: BigInt(hiscores.rangedXp),
+            prayerXp: BigInt(hiscores.prayerXp),
+            magicXp: BigInt(hiscores.magicXp),
+            cookingXp: BigInt(hiscores.cookingXp),
+            woodcuttingXp: BigInt(hiscores.woodcuttingXp),
+            fletchingXp: BigInt(hiscores.fletchingXp),
+            fishingXp: BigInt(hiscores.fishingXp),
+            firemakingXp: BigInt(hiscores.firemakingXp),
+            craftingXp: BigInt(hiscores.craftingXp),
+            smithingXp: BigInt(hiscores.smithingXp),
+            miningXp: BigInt(hiscores.miningXp),
+            herbloreXp: BigInt(hiscores.herbloreXp),
+            agilityXp: BigInt(hiscores.agilityXp),
+            thievingXp: BigInt(hiscores.thievingXp),
+            slayerXp: BigInt(hiscores.slayerXp),
+            farmingXp: BigInt(hiscores.farmingXp),
+            runecraftXp: BigInt(hiscores.runecraftXp),
+            hunterXp: BigInt(hiscores.hunterXp),
+            constructionXp: BigInt(hiscores.constructionXp),
           },
         });
-        if (!response.ok) {
-          console.error(
-            "Hiscores API error:",
-            response.status,
-            response.statusText
-          );
-        } else {
-          const textData = await response.text();
-          console.log("Hiscores API response text:", textData);
-          const lines = textData
-            .split("\n")
-            .filter((line) => line.trim().length > 0);
-          console.log("Hiscores API returned", lines.length, "lines");
-          if (lines.length < 24) {
-            console.error("Insufficient data from hiscores API:", textData);
-          } else {
-            const hiscores = parseHiscoresData(textData);
-            const playerRecord = await prisma.player.create({
-              data: {
-                username: osrsUsername,
-                overallLevel: hiscores.overallLevel,
-                overallXp: hiscores.overallXp,
-                attackXp: hiscores.attackXp,
-                defenceXp: hiscores.defenceXp,
-                strengthXp: hiscores.strengthXp,
-                hitpointsXp: hiscores.hitpointsXp,
-                rangedXp: hiscores.rangedXp,
-                prayerXp: hiscores.prayerXp,
-                magicXp: hiscores.magicXp,
-                cookingXp: hiscores.cookingXp,
-                woodcuttingXp: hiscores.woodcuttingXp,
-                fletchingXp: hiscores.fletchingXp,
-                fishingXp: hiscores.fishingXp,
-                firemakingXp: hiscores.firemakingXp,
-                craftingXp: hiscores.craftingXp,
-                smithingXp: hiscores.smithingXp,
-                miningXp: hiscores.miningXp,
-                herbloreXp: hiscores.herbloreXp,
-                agilityXp: hiscores.agilityXp,
-                thievingXp: hiscores.thievingXp,
-                slayerXp: hiscores.slayerXp,
-                farmingXp: hiscores.farmingXp,
-                runecraftXp: hiscores.runecraftXp,
-                hunterXp: hiscores.hunterXp,
-                constructionXp: hiscores.constructionXp,
-                boardId: board.id,
-              },
-            });
-            console.log("Player record created:", playerRecord);
-          }
-        }
-      } catch (apiError) {
-        console.error("Error fetching OSRS hiscores:", apiError);
+      } else {
+        playerRecord = await prisma.player.create({
+          data: {
+            username: osrsUsername,
+            overallLevel: hiscores.overallLevel,
+            overallXp: BigInt(hiscores.overallXp),
+            attackXp: BigInt(hiscores.attackXp),
+            defenceXp: BigInt(hiscores.defenceXp),
+            strengthXp: BigInt(hiscores.strengthXp),
+            hitpointsXp: BigInt(hiscores.hitpointsXp),
+            rangedXp: BigInt(hiscores.rangedXp),
+            prayerXp: BigInt(hiscores.prayerXp),
+            magicXp: BigInt(hiscores.magicXp),
+            cookingXp: BigInt(hiscores.cookingXp),
+            woodcuttingXp: BigInt(hiscores.woodcuttingXp),
+            fletchingXp: BigInt(hiscores.fletchingXp),
+            fishingXp: BigInt(hiscores.fishingXp),
+            firemakingXp: BigInt(hiscores.firemakingXp),
+            craftingXp: BigInt(hiscores.craftingXp),
+            smithingXp: BigInt(hiscores.smithingXp),
+            miningXp: BigInt(hiscores.miningXp),
+            herbloreXp: BigInt(hiscores.herbloreXp),
+            agilityXp: BigInt(hiscores.agilityXp),
+            thievingXp: BigInt(hiscores.thievingXp),
+            slayerXp: BigInt(hiscores.slayerXp),
+            farmingXp: BigInt(hiscores.farmingXp),
+            runecraftXp: BigInt(hiscores.runecraftXp),
+            hunterXp: BigInt(hiscores.hunterXp),
+            constructionXp: BigInt(hiscores.constructionXp),
+          },
+        });
       }
+      // Associate the player record with the board.
+      await prisma.soloBoard.update({
+        where: { id: board.id },
+        data: { playerId: playerRecord.id },
+      });
     }
-    return res.status(201).json({
-      message: "Solo board created successfully",
-      boardId: board.id,
-    });
+
+    return res
+      .status(201)
+      .json({ message: "Solo board created successfully", boardId: board.id });
   } catch (error) {
     console.error("Error creating solo board:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -174,7 +228,13 @@ export const getSoloBoard = async (req, res) => {
     if (!board) {
       return res.status(404).json({ error: "Board not found" });
     }
-    return res.status(200).json(board);
+    // Convert BigInt values to strings for safe JSON serialization.
+    const safeBoard = JSON.parse(
+      JSON.stringify(board, (key, value) =>
+        typeof value === "bigint" ? value.toString() : value
+      )
+    );
+    return res.status(200).json(safeBoard);
   } catch (error) {
     console.error("Error fetching solo board:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -193,6 +253,7 @@ export const updateSoloBoard = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ error: "Incorrect board password" });
     }
+    // Remove old tiles and update board details.
     await prisma.soloTile.deleteMany({ where: { boardId: board.id } });
     const updatedBoard = await prisma.soloBoard.update({
       where: { name },
@@ -213,86 +274,81 @@ export const updateSoloBoard = async (req, res) => {
         },
       },
     });
+
     if (osrsUsername) {
-      try {
-        const hiscoreUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(
-          osrsUsername
-        )}`;
-        const response = await fetch(hiscoreUrl, {
-          headers: {
-            "User-Agent": "OSRS Bingo App (your_email@example.com)",
-          },
-        });
-        const textData = await response.text();
-        const hiscores = parseHiscoresData(textData);
-        await prisma.player.upsert({
-          where: { boardId: board.id },
-          update: {
-            username: osrsUsername,
-            overallLevel: hiscores.overallLevel,
-            overallXp: hiscores.overallXp,
-            attackXp: hiscores.attackXp,
-            defenceXp: hiscores.defenceXp,
-            strengthXp: hiscores.strengthXp,
-            hitpointsXp: hiscores.hitpointsXp,
-            rangedXp: hiscores.rangedXp,
-            prayerXp: hiscores.prayerXp,
-            magicXp: hiscores.magicXp,
-            cookingXp: hiscores.cookingXp,
-            woodcuttingXp: hiscores.woodcuttingXp,
-            fletchingXp: hiscores.fletchingXp,
-            fishingXp: hiscores.fishingXp,
-            firemakingXp: hiscores.firemakingXp,
-            craftingXp: hiscores.craftingXp,
-            smithingXp: hiscores.smithingXp,
-            miningXp: hiscores.miningXp,
-            herbloreXp: hiscores.herbloreXp,
-            agilityXp: hiscores.agilityXp,
-            thievingXp: hiscores.thievingXp,
-            slayerXp: hiscores.slayerXp,
-            farmingXp: hiscores.farmingXp,
-            runecraftXp: hiscores.runecraftXp,
-            hunterXp: hiscores.hunterXp,
-            constructionXp: hiscores.constructionXp,
-          },
-          create: {
-            username: osrsUsername,
-            overallLevel: hiscores.overallLevel,
-            overallXp: hiscores.overallXp,
-            attackXp: hiscores.attackXp,
-            defenceXp: hiscores.defenceXp,
-            strengthXp: hiscores.strengthXp,
-            hitpointsXp: hiscores.hitpointsXp,
-            rangedXp: hiscores.rangedXp,
-            prayerXp: hiscores.prayerXp,
-            magicXp: hiscores.magicXp,
-            cookingXp: hiscores.cookingXp,
-            woodcuttingXp: hiscores.woodcuttingXp,
-            fletchingXp: hiscores.fletchingXp,
-            fishingXp: hiscores.fishingXp,
-            firemakingXp: hiscores.firemakingXp,
-            craftingXp: hiscores.craftingXp,
-            smithingXp: hiscores.smithingXp,
-            miningXp: hiscores.miningXp,
-            herbloreXp: hiscores.herbloreXp,
-            agilityXp: hiscores.agilityXp,
-            thievingXp: hiscores.thievingXp,
-            slayerXp: hiscores.slayerXp,
-            farmingXp: hiscores.farmingXp,
-            runecraftXp: hiscores.runecraftXp,
-            hunterXp: hiscores.hunterXp,
-            constructionXp: hiscores.constructionXp,
-            boardId: board.id,
-          },
-        });
-      } catch (apiError) {
-        console.error("Error fetching OSRS hiscores during update:", apiError);
-      }
+      let hiscores = await fetchAndValidateHiscores(osrsUsername, res);
+      // If an error was returned from fetchAndValidateHiscores, stop here.
+      if (hiscores?.headersSent) return;
+      const playerRecord = await prisma.player.upsert({
+        where: { username: osrsUsername },
+        update: {
+          overallLevel: hiscores.overallLevel,
+          overallXp: BigInt(hiscores.overallXp),
+          attackXp: BigInt(hiscores.attackXp),
+          defenceXp: BigInt(hiscores.defenceXp),
+          strengthXp: BigInt(hiscores.strengthXp),
+          hitpointsXp: BigInt(hiscores.hitpointsXp),
+          rangedXp: BigInt(hiscores.rangedXp),
+          prayerXp: BigInt(hiscores.prayerXp),
+          magicXp: BigInt(hiscores.magicXp),
+          cookingXp: BigInt(hiscores.cookingXp),
+          woodcuttingXp: BigInt(hiscores.woodcuttingXp),
+          fletchingXp: BigInt(hiscores.fletchingXp),
+          fishingXp: BigInt(hiscores.fishingXp),
+          firemakingXp: BigInt(hiscores.firemakingXp),
+          craftingXp: BigInt(hiscores.craftingXp),
+          smithingXp: BigInt(hiscores.smithingXp),
+          miningXp: BigInt(hiscores.miningXp),
+          herbloreXp: BigInt(hiscores.herbloreXp),
+          agilityXp: BigInt(hiscores.agilityXp),
+          thievingXp: BigInt(hiscores.thievingXp),
+          slayerXp: BigInt(hiscores.slayerXp),
+          farmingXp: BigInt(hiscores.farmingXp),
+          runecraftXp: BigInt(hiscores.runecraftXp),
+          hunterXp: BigInt(hiscores.hunterXp),
+          constructionXp: BigInt(hiscores.constructionXp),
+        },
+        create: {
+          username: osrsUsername,
+          overallLevel: hiscores.overallLevel,
+          overallXp: BigInt(hiscores.overallXp),
+          attackXp: BigInt(hiscores.attackXp),
+          defenceXp: BigInt(hiscores.defenceXp),
+          strengthXp: BigInt(hiscores.strengthXp),
+          hitpointsXp: BigInt(hiscores.hitpointsXp),
+          rangedXp: BigInt(hiscores.rangedXp),
+          prayerXp: BigInt(hiscores.prayerXp),
+          magicXp: BigInt(hiscores.magicXp),
+          cookingXp: BigInt(hiscores.cookingXp),
+          woodcuttingXp: BigInt(hiscores.woodcuttingXp),
+          fletchingXp: BigInt(hiscores.fletchingXp),
+          fishingXp: BigInt(hiscores.fishingXp),
+          firemakingXp: BigInt(hiscores.firemakingXp),
+          craftingXp: BigInt(hiscores.craftingXp),
+          smithingXp: BigInt(hiscores.smithingXp),
+          miningXp: BigInt(hiscores.miningXp),
+          herbloreXp: BigInt(hiscores.herbloreXp),
+          agilityXp: BigInt(hiscores.agilityXp),
+          thievingXp: BigInt(hiscores.thievingXp),
+          slayerXp: BigInt(hiscores.slayerXp),
+          farmingXp: BigInt(hiscores.farmingXp),
+          runecraftXp: BigInt(hiscores.runecraftXp),
+          hunterXp: BigInt(hiscores.hunterXp),
+          constructionXp: BigInt(hiscores.constructionXp),
+        },
+      });
+      // Update the board to reference the player record.
+      await prisma.soloBoard.update({
+        where: { id: board.id },
+        data: { playerId: playerRecord.id },
+      });
     }
-    return res.status(200).json({
-      message: "Board updated successfully",
-      boardId: updatedBoard.id,
-    });
+    return res
+      .status(200)
+      .json({
+        message: "Board updated successfully",
+        boardId: updatedBoard.id,
+      });
   } catch (error) {
     console.error("Error updating board:", error);
     return res.status(500).json({ error: "Internal server error" });
