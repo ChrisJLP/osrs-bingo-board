@@ -4,36 +4,35 @@ import ReactDOM from "react-dom";
 import WikiSearch from "./WikiSearch";
 import CustomEntry from "./CustomEntry";
 import CompletionCriteria from "./CompletionCriteria";
-import UnsavedChangesWarning from "./UnsavedChangesWarning";
-import useTileEditor from "../hooks/useTileEditor"; // Adjust path as needed
+import useTileEditor from "../hooks/useTileEditor";
 
-const TileEditor = ({ initialData, onSave, onCancel }) => {
+const TileEditor = ({ initialData, tilePosition, onSave, onCancel }) => {
+  const editorRef = useRef(null);
+
   const {
     content,
     criteria,
     mode,
-    showWarning,
+    handleReset,
     handleContentChange,
     handleCriteriaChange,
     handleModeChange,
     handleSave,
     handleCancel,
-    handleBackdropClick,
-    handleWarningSave,
-    handleWarningDiscard,
-    handleWarningGoBack,
-  } = useTileEditor(initialData);
-
-  const editorRef = useRef(null);
+  } = useTileEditor(initialData, tilePosition, (resetData) => {
+    onSave(resetData); // Immediately update tile
+    onCancel(); // Close the editor after reset
+  });
 
   const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop handles click-away */}
+      {/* Backdrop to close on click outside */}
       <div
         className="absolute inset-0 bg-black opacity-50"
-        onClick={() => handleBackdropClick(onCancel)}
+        onClick={onCancel}
       ></div>
-      {/* Modal content – stop propagation so clicks inside don’t trigger the backdrop */}
+
+      {/* Modal content */}
       <div
         ref={editorRef}
         className="relative bg-white p-4 rounded shadow-lg w-96"
@@ -56,6 +55,8 @@ const TileEditor = ({ initialData, onSave, onCancel }) => {
             Custom Entry
           </button>
         </div>
+
+        {/* Content Selection */}
         <div className="mb-4">
           {mode === "wiki" ? (
             <>
@@ -68,41 +69,40 @@ const TileEditor = ({ initialData, onSave, onCancel }) => {
             <CustomEntry value={content} onChange={handleContentChange} />
           )}
         </div>
+
+        {/* Completion Criteria */}
         <div className="mb-4">
           <CompletionCriteria
             value={criteria}
             onChange={handleCriteriaChange}
           />
         </div>
-        <div className="flex justify-end space-x-2">
+
+        {/* Buttons - Reset, Save, Cancel */}
+        <div className="flex justify-between">
           <button
-            onClick={() => {
-              const result = handleSave();
-              onSave(result);
-            }}
+            onClick={handleReset}
+            className="bg-red-500 text-white p-2 rounded"
           >
-            Save
+            Reset
           </button>
-          <button
-            onClick={() => {
-              handleCancel();
-              onCancel();
-            }}
-          >
-            Cancel
-          </button>
+
+          <div className="flex space-x-2">
+            <button
+              onClick={() => {
+                onSave({ content, ...criteria });
+                onCancel();
+              }}
+              className="bg-blue-500 text-white p-2 rounded"
+            >
+              Save
+            </button>
+            <button onClick={onCancel} className="bg-gray-300 p-2 rounded">
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
-      {showWarning && (
-        <UnsavedChangesWarning
-          onSave={() => {
-            const result = handleWarningSave();
-            onSave(result);
-          }}
-          onDiscard={handleWarningDiscard}
-          onGoBack={handleWarningGoBack}
-        />
-      )}
     </div>
   );
 

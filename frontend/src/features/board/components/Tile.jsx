@@ -1,3 +1,4 @@
+// frontend/src/features/board/components/Tile.jsx
 import React, { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -13,14 +14,10 @@ const formatNumber = (num) => {
 };
 
 const Tile = ({ id, data: initialData, onTileUpdate }) => {
-  // Use DnD Kit's useSortable hook for drag-and-drop.
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: id.toString() });
 
-  // Local state to track whether the tile is being edited.
   const [isEditing, setIsEditing] = useState(false);
-
-  // tileData: { content, target, unit, progress, completed? }
   const [tileData, setTileData] = useState(
     initialData || {
       content: id.toString(),
@@ -31,23 +28,21 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
     }
   );
 
-  // ➜➜ ADD THIS EFFECT to re-sync local state when props change:
+  // Ensure local tile data updates when props change
   useEffect(() => {
     setTileData(initialData);
   }, [initialData]);
 
-  // Apply transform/transition for DnD.
   const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    pointerEvents: isEditing ? "none" : "auto",
+    transform: isEditing ? "none" : CSS.Transform.toString(transform), // Disable movement when editing
+    transition: isEditing ? "none" : transition, // Disable animations when editing
+    pointerEvents: isEditing ? "none" : "auto", // Prevent drag events while editing
     position: "relative",
   };
 
-  // Called when the user clicks "Save" in the TileEditor.
+  // Save tile data and notify parent component
   const handleSave = (newData) => {
     setTileData(newData);
-    // Notify the parent about the update so it can store it in board-level state.
     if (onTileUpdate) {
       onTileUpdate(id, newData);
     }
@@ -58,7 +53,6 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
     setIsEditing(false);
   };
 
-  // Calculate percentage completion for overlay display.
   const percentage =
     tileData.target > 0
       ? Math.min(100, Math.round((tileData.progress / tileData.target) * 100))
@@ -68,42 +62,23 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
     <div
       ref={setNodeRef}
       style={style}
-      {...(isEditing ? {} : attributes)}
-      {...(isEditing ? {} : listeners)}
-      data-testid="bingo-cell"
-      className={`relative border border-black bg-white flex items-center justify-center p-14 cursor-pointer ${
-        percentage === 100 ? "completed" : ""
-      }`}
+      {...(isEditing ? {} : attributes)} // Disable attributes when editing
+      {...(isEditing ? {} : listeners)} // Disable listeners when editing
+      className="relative border border-black bg-white flex items-center justify-center p-14 cursor-pointer"
       onClick={(e) => {
         e.stopPropagation();
         setIsEditing(true);
       }}
     >
-      <span data-testid="tile-content">{tileData.content}</span>
+      <span>{tileData.content}</span>
 
-      {/* If there's a target, show the progress overlay & text */}
       {tileData.target > 0 && (
         <>
           <div
-            data-testid="progress-overlay"
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              height: `${percentage}%`,
-              backgroundColor: "green",
-              opacity: 0.5,
-            }}
+            className="absolute top-0 left-0 right-0 h-full bg-green-500 opacity-50"
+            style={{ height: `${percentage}%` }}
           ></div>
-          <div
-            style={{
-              position: "absolute",
-              bottom: 5,
-              width: "100%",
-              textAlign: "center",
-            }}
-          >
+          <div className="absolute bottom-2 w-full text-center">
             {`${formatNumber(tileData.progress)}/${formatNumber(
               tileData.target
             )}`}
@@ -111,10 +86,10 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
         </>
       )}
 
-      {/* Show the editor as a portal-based modal when editing. */}
       {isEditing && (
         <TileEditor
           initialData={tileData}
+          tilePosition={id}
           onSave={handleSave}
           onCancel={handleCancel}
         />

@@ -1,7 +1,7 @@
 // frontend/src/hooks/useTileEditor.js
 import { useState, useRef } from "react";
 
-const useTileEditor = (initialData) => {
+const useTileEditor = (initialData, tilePosition, onReset) => {
   // Store original values in a ref to reset later.
   const initialValues = useRef({
     content: initialData.content || "",
@@ -17,7 +17,6 @@ const useTileEditor = (initialData) => {
   const [criteria, setCriteria] = useState(initialValues.current.criteria);
   const [mode, setMode] = useState("wiki"); // "wiki" or "custom"
   const [dirty, setDirty] = useState(false);
-  const [showWarning, setShowWarning] = useState(false);
 
   // Handler functions
   const handleContentChange = (newContent) => {
@@ -37,7 +36,6 @@ const useTileEditor = (initialData) => {
 
   const handleSave = () => {
     setDirty(false);
-    setShowWarning(false);
     return { content, ...criteria };
   };
 
@@ -45,29 +43,26 @@ const useTileEditor = (initialData) => {
     setContent(initialValues.current.content);
     setCriteria(initialValues.current.criteria);
     setDirty(false);
-    setShowWarning(false);
   };
 
-  const handleBackdropClick = (onCancel) => {
-    if (dirty) {
-      setShowWarning(true);
-    } else if (typeof onCancel === "function") {
-      onCancel();
+  // Reset function - Now immediately resets and calls onReset
+  const handleReset = () => {
+    if (window.confirm("Are you sure you want to reset this tile?")) {
+      const resetData = {
+        content: tilePosition.toString(),
+        target: 0,
+        unit: "drops",
+        progress: 0,
+      };
+      setContent(resetData.content);
+      setCriteria({
+        target: resetData.target,
+        unit: resetData.unit,
+        progress: resetData.progress,
+      });
+      setDirty(false); // Reset means no unsaved changes
+      onReset(resetData); // Immediately update tile and close editor
     }
-  };
-
-  const handleWarningSave = () => {
-    setShowWarning(false);
-    return handleSave();
-  };
-
-  const handleWarningDiscard = () => {
-    setShowWarning(false);
-    handleCancel();
-  };
-
-  const handleWarningGoBack = () => {
-    setShowWarning(false);
   };
 
   return {
@@ -75,16 +70,12 @@ const useTileEditor = (initialData) => {
     criteria,
     mode,
     dirty,
-    showWarning,
+    handleReset,
     handleContentChange,
     handleCriteriaChange,
     handleModeChange,
     handleSave,
     handleCancel,
-    handleBackdropClick,
-    handleWarningSave,
-    handleWarningDiscard,
-    handleWarningGoBack,
   };
 };
 
