@@ -15,7 +15,7 @@ const useBingoBoardLogic = () => {
   const [rows, setRows] = useState(5);
   const [columns, setColumns] = useState(5);
   const [boardName, setBoardName] = useState("");
-  const [boardTitle, setBoardTitle] = useState("Bingo Board"); // new title state with default
+  const [boardTitle, setBoardTitle] = useState("Bingo Board"); // board title state
   const [boardPassword, setBoardPassword] = useState("");
   const [isExistingBoard, setIsExistingBoard] = useState(false);
 
@@ -33,25 +33,44 @@ const useBingoBoardLogic = () => {
   // API interactions from useBingoBoard hook
   const { error, fetchBoard, saveBoard, updateBoard } = useBingoBoard();
 
-  // Listen for external events to open the "find board" modal.
-  useEffect(() => {
-    const openFindModal = () => setShowFindModal(true);
-    window.addEventListener("openFindBoardModal", openFindModal);
-    return () =>
-      window.removeEventListener("openFindBoardModal", openFindModal);
-  }, []);
+  // Undo/Redo stacks for board state (rows, columns, tiles, order)
+  const [undoStack, setUndoStack] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
 
-  // Handler to update a single tile's data.
+  // Save snapshot of current board state
+  const saveCurrentState = () => {
+    const snapshot = { rows, columns, tiles, order };
+    setUndoStack((prev) => [...prev, snapshot]);
+    setRedoStack([]); // clear redo stack on new action
+  };
+
+  // Wrapped state change functions
+  const handleRowsChange = (newRows) => {
+    saveCurrentState();
+    setRows(newRows);
+  };
+
+  const handleColumnsChange = (newColumns) => {
+    saveCurrentState();
+    setColumns(newColumns);
+  };
+
+  const handleOrderChange = (newOrder) => {
+    saveCurrentState();
+    setOrder(newOrder);
+  };
+
   const handleTileUpdate = (tileId, newData) => {
+    saveCurrentState();
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // Handler to save (or update) the board.
+  // Save (or update) board handler remains the same except including boardTitle
   const confirmSave = async () => {
     const boardDataToSave = {
       name: boardName,
       password: boardPassword,
-      title: boardTitle, // include the title
+      title: boardTitle,
       rows,
       columns,
       tiles: order.map(
@@ -76,7 +95,7 @@ const useBingoBoardLogic = () => {
     }
   };
 
-  // Handler to fetch an existing board.
+  // Fetch board handler
   const handleConfirmFind = async () => {
     const data = await fetchBoard(findBoardName);
     if (data) {
@@ -84,7 +103,7 @@ const useBingoBoardLogic = () => {
       setIsExistingBoard(true);
       setRows(data.rows || 5);
       setColumns(data.columns || 5);
-      setBoardTitle(data.title || "Bingo Board"); // update title from fetched board
+      setBoardTitle(data.title || "Bingo Board");
       const fetchedTiles = {};
       (data.tiles || [])
         .sort((a, b) => a.position - b.position)
@@ -100,40 +119,66 @@ const useBingoBoardLogic = () => {
         });
       setTiles(fetchedTiles);
       setShowFindModal(false);
+      // Optionally, clear undo/redo stacks when loading a board.
+      setUndoStack([]);
+      setRedoStack([]);
     }
   };
 
+  // Undo: restore last snapshot from undoStack
+  const undo = () => {
+    if (undoStack.length === 0) return;
+    const lastSnapshot = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, prev.length - 1));
+    const currentSnapshot = { rows, columns, tiles, order };
+    setRedoStack((prev) => [...prev, currentSnapshot]);
+    setRows(lastSnapshot.rows);
+    setColumns(lastSnapshot.columns);
+    setTiles(lastSnapshot.tiles);
+    setOrder(lastSnapshot.order);
+  };
+
+  // Redo: restore last snapshot from redoStack
+  const redo = () => {
+    if (redoStack.length === 0) return;
+    const lastSnapshot = redoStack[redoStack.length - 1];
+    setRedoStack((prev) => prev.slice(0, prev.length - 1));
+    const currentSnapshot = { rows, columns, tiles, order };
+    setUndoStack((prev) => [...prev, currentSnapshot]);
+    setRows(lastSnapshot.rows);
+    setColumns(lastSnapshot.columns);
+    setTiles(lastSnapshot.tiles);
+    setOrder(lastSnapshot.order);
+  };
+
   return {
-    // Board properties
     rows,
-    setRows,
+    setRows: handleRowsChange,
     columns,
-    setColumns,
+    setColumns: handleColumnsChange,
     boardName,
     setBoardName,
-    boardTitle, // added boardTitle
-    setBoardTitle, // added setter for boardTitle
+    boardTitle,
+    setBoardTitle,
     boardPassword,
     setBoardPassword,
     isExistingBoard,
     setIsExistingBoard,
-    // Modal states
     showSaveModal,
     setShowSaveModal,
     showFindModal,
     setShowFindModal,
     findBoardName,
     setFindBoardName,
-    // Tile data and order
     tiles,
     order,
-    setOrder,
-    // API error (if any)
+    setOrder: handleOrderChange,
     error,
-    // Handlers
     handleTileUpdate,
     confirmSave,
     handleConfirmFind,
+    undo,
+    redo,
   };
 };
 

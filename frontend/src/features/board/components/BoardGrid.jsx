@@ -1,3 +1,4 @@
+// frontend/src/features/board/components/BoardGrid.jsx
 import React, { useEffect } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
@@ -12,26 +13,35 @@ const defaultTileData = {
   completed: false,
 };
 
-const BoardGrid = ({ rows, columns, tiles, onTileUpdate, onOrderChange }) => {
-  // Create the initial order based on the grid dimensions.
-  const initialOrder = Array.from(
-    { length: rows * columns },
-    (_, index) => index + 1
-  );
-  const { order, setOrder, sensors, handleDragEnd } =
-    useBoardGridDnD(initialOrder);
+const BoardGrid = ({
+  rows,
+  columns,
+  tiles,
+  onTileUpdate,
+  order,
+  onOrderChange,
+}) => {
+  // Use parent's order if available; otherwise, default to a new order.
+  const currentOrder =
+    order && order.length === rows * columns
+      ? order
+      : Array.from({ length: rows * columns }, (_, index) => index + 1);
 
-  // Update order if grid dimensions change.
+  // When rows/columns change (for example, when a row is removed), update parent's order.
   useEffect(() => {
-    setOrder(Array.from({ length: rows * columns }, (_, index) => index + 1));
-  }, [rows, columns, setOrder]);
-
-  // Propagate the local order change to the parent.
-  useEffect(() => {
-    if (onOrderChange) {
-      onOrderChange(order);
+    const newOrder = Array.from(
+      { length: rows * columns },
+      (_, index) => index + 1
+    );
+    if (!order || order.length !== newOrder.length) {
+      onOrderChange(newOrder);
     }
-  }, [order, onOrderChange]);
+  }, [rows, columns, order, onOrderChange]);
+
+  const { sensors, handleDragEnd } = useBoardGridDnD(
+    currentOrder,
+    onOrderChange
+  );
 
   const gridStyle = {
     gridTemplateRows: `repeat(${rows}, 1fr)`,
@@ -46,11 +56,11 @@ const BoardGrid = ({ rows, columns, tiles, onTileUpdate, onOrderChange }) => {
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={order.map(String)}
+          items={currentOrder.map(String)}
           strategy={rectSortingStrategy}
         >
           <div className="grid gap-1" style={gridStyle}>
-            {order.map((tileId) => (
+            {currentOrder.map((tileId) => (
               <Tile
                 key={tileId}
                 id={tileId}
