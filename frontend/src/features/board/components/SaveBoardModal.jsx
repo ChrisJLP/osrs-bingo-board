@@ -1,4 +1,4 @@
-// frontend/src/features/board/components/SaveBoardModal.jsx
+// SaveBoardModal.jsx
 import React from "react";
 
 const SaveBoardModal = ({
@@ -18,7 +18,7 @@ const SaveBoardModal = ({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
       onClick={onCancel}
     >
       <div

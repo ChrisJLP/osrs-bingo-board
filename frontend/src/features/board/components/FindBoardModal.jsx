@@ -1,4 +1,4 @@
-// frontend/src/features/board/components/FindBoardModal.jsx
+// FindBoardModal.jsx
 import React from "react";
 
 const FindBoardModal = ({
@@ -13,7 +13,7 @@ const FindBoardModal = ({
 
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
       onClick={onCancel}
     >
       <div
