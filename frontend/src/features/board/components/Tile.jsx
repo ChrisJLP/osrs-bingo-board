@@ -27,7 +27,7 @@ const xpToLevel = (xp) => {
   return 99;
 };
 
-// Mapping of skill names to their corresponding hiscores property keys
+// Mapping of skill names to their corresponding hiscores property keys.
 const skillMapping = {
   Overall: "overallXp",
   Attack: "attackXp",
@@ -66,6 +66,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
   } = useSortable({ id: id.toString() });
 
   const [isEditing, setIsEditing] = useState(false);
+  // Initialize tileData with safe defaults.
   const [tileData, setTileData] = useState(
     initialData || {
       content: id.toString(),
@@ -73,13 +74,17 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
       unit: "drops",
       progress: 0,
       completed: false,
+      // For skill tiles, ensure these default to 0.
+      currentLevel: 0,
+      goalLevel: 0,
     }
   );
-  // State for showing the complete tick overlay
+
+  // State for showing the tick overlay (for wiki mode).
   const [showCompleteTick, setShowCompleteTick] = useState(false);
-  // State for showing the wiki info overlay at top right
+  // State for showing the wiki info overlay at top right (for wiki mode).
   const [showWikiInfoOverlay, setShowWikiInfoOverlay] = useState(false);
-  // Timer refs: one for tick overlay and one for wiki overlay delay.
+  // Timer refs for hover behaviors.
   const hoverTimerRef = useRef(null);
   const wikiOverlayTimerRef = useRef(null);
 
@@ -96,7 +101,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         const xpValue = osrsData[xpProp];
         if (xpValue !== undefined) {
           const newLevel = xpToLevel(Number(xpValue));
-          if (newLevel !== tileData.currentLevel) {
+          if (newLevel !== Number(tileData.currentLevel)) {
             setTileData((prev) => ({ ...prev, currentLevel: newLevel }));
           }
         }
@@ -104,7 +109,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     }
   }, [osrsData, tileData.mode, tileData.skill, tileData.currentLevel]);
 
-  // New effect: if dragging stops, clear the wiki overlay timer and hide overlay.
+  // When dragging stops, reset the wiki overlay timer and hide the overlay.
   useEffect(() => {
     if (!isDragging) {
       if (wikiOverlayTimerRef.current) {
@@ -136,8 +141,12 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     setIsEditing(false);
   };
 
-  // Dedicated branch for skill mode.
+  // --- Skill Mode Branch ---
   if (tileData.mode === "skill" && tileData.skill) {
+    // Use safe defaults for current and target levels.
+    const currentLevel = Number(tileData.currentLevel) || 0;
+    const goalLevel = Number(tileData.goalLevel) || 0;
+    const isComplete = goalLevel > 0 && currentLevel >= goalLevel;
     const skillBackgroundStyle = tileData.imageUrl
       ? {
           backgroundImage: `url(${tileData.imageUrl})`,
@@ -146,6 +155,9 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           backgroundPosition: "center",
         }
       : {};
+    if (isComplete) {
+      skillBackgroundStyle.backgroundColor = "rgba(0,255,0,0.1)";
+    }
     return (
       <div
         ref={setNodeRef}
@@ -158,8 +170,22 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           setIsEditing(true);
         }}
       >
+        {isComplete && (
+          <div
+            style={{
+              position: "absolute",
+              top: "4px",
+              left: "4px",
+              color: "green",
+              fontSize: "1.5rem",
+              zIndex: 10,
+            }}
+          >
+            ✔
+          </div>
+        )}
         <div className="absolute bottom-2 w-full text-center">
-          {`${tileData.currentLevel}/${tileData.goalLevel}`}
+          {`${currentLevel}/${goalLevel}`}
         </div>
         {isEditing && (
           <TileEditor
@@ -174,7 +200,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     );
   }
 
-  // For wiki and custom modes, apply wiki background if available.
+  // --- Wiki and Custom Modes ---
   let backgroundStyle = {};
   if (tileData.mode === "wiki" && tileData.imageUrl) {
     backgroundStyle = {
@@ -185,18 +211,17 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     };
   }
 
-  // Handle mouse movement for wiki mode.
   const handleMouseMove = (e) => {
     if (tileData.mode === "wiki") {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      // Check if within bottom left 25% region.
+      // If cursor is in the bottom left 25% region, start the tick timer.
       if (x < rect.width * 0.25 && y > rect.height * 0.75) {
         if (!hoverTimerRef.current) {
           hoverTimerRef.current = setTimeout(() => {
             setShowCompleteTick(true);
-          }, 600);
+          }, 300);
         }
         if (wikiOverlayTimerRef.current) {
           clearTimeout(wikiOverlayTimerRef.current);
@@ -209,7 +234,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           hoverTimerRef.current = null;
           setShowCompleteTick(false);
         }
-        // Start a wiki overlay timer if not already running.
+        // Start a timer for the wiki overlay (0.2 sec delay).
         if (!wikiOverlayTimerRef.current) {
           wikiOverlayTimerRef.current = setTimeout(() => {
             setShowWikiInfoOverlay(true);
@@ -233,7 +258,6 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     setShowWikiInfoOverlay(false);
   };
 
-  // Render the tile.
   return (
     <div
       ref={setNodeRef}
@@ -258,7 +282,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           )}`}
         </div>
       )}
-      {/* Render tick overlay in the bottom left corner */}
+      {/* Render tick overlay in the bottom left corner for wiki mode */}
       {tileData.mode === "wiki" && (showCompleteTick || tileData.completed) && (
         <div
           onClick={(e) => {
