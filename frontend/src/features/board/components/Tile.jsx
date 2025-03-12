@@ -56,8 +56,14 @@ const skillMapping = {
 };
 
 const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
-  const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: id.toString() });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: id.toString() });
 
   const [isEditing, setIsEditing] = useState(false);
   const [tileData, setTileData] = useState(
@@ -71,9 +77,13 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
   );
   // State for showing the complete tick overlay
   const [showCompleteTick, setShowCompleteTick] = useState(false);
+  // State for showing the wiki info overlay at top right
+  const [showWikiInfoOverlay, setShowWikiInfoOverlay] = useState(false);
+  // Timer refs: one for tick overlay and one for wiki overlay delay.
   const hoverTimerRef = useRef(null);
+  const wikiOverlayTimerRef = useRef(null);
 
-  // Update tile data when initialData changes.
+  // Update tileData when initialData changes.
   useEffect(() => {
     setTileData(initialData);
   }, [initialData]);
@@ -93,6 +103,17 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
       }
     }
   }, [osrsData, tileData.mode, tileData.skill, tileData.currentLevel]);
+
+  // New effect: if dragging stops, clear the wiki overlay timer and hide overlay.
+  useEffect(() => {
+    if (!isDragging) {
+      if (wikiOverlayTimerRef.current) {
+        clearTimeout(wikiOverlayTimerRef.current);
+        wikiOverlayTimerRef.current = null;
+      }
+      setShowWikiInfoOverlay(false);
+    }
+  }, [isDragging]);
 
   // Base style for the tile container.
   const style = {
@@ -164,36 +185,52 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     };
   }
 
-  // Handle mouse movement: only trigger tick if over bottom left 25% region.
+  // Handle mouse movement for wiki mode.
   const handleMouseMove = (e) => {
-    if (tileData.mode === "wiki" && !tileData.completed) {
+    if (tileData.mode === "wiki") {
       const rect = e.currentTarget.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      // Check if within left 25% and bottom 25% of the tile.
+      // Check if within bottom left 25% region.
       if (x < rect.width * 0.25 && y > rect.height * 0.75) {
         if (!hoverTimerRef.current) {
           hoverTimerRef.current = setTimeout(() => {
             setShowCompleteTick(true);
-          }, 300);
+          }, 600);
         }
+        if (wikiOverlayTimerRef.current) {
+          clearTimeout(wikiOverlayTimerRef.current);
+          wikiOverlayTimerRef.current = null;
+        }
+        setShowWikiInfoOverlay(false);
       } else {
         if (hoverTimerRef.current) {
           clearTimeout(hoverTimerRef.current);
           hoverTimerRef.current = null;
+          setShowCompleteTick(false);
         }
-        setShowCompleteTick(false);
+        // Start a wiki overlay timer if not already running.
+        if (!wikiOverlayTimerRef.current) {
+          wikiOverlayTimerRef.current = setTimeout(() => {
+            setShowWikiInfoOverlay(true);
+            wikiOverlayTimerRef.current = null;
+          }, 200);
+        }
       }
     }
   };
 
-  // Clear the timer and hide tick on mouse leave.
   const handleMouseLeave = () => {
     if (hoverTimerRef.current) {
       clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = null;
     }
+    if (wikiOverlayTimerRef.current) {
+      clearTimeout(wikiOverlayTimerRef.current);
+      wikiOverlayTimerRef.current = null;
+    }
     setShowCompleteTick(false);
+    setShowWikiInfoOverlay(false);
   };
 
   // Render the tile.
@@ -201,7 +238,6 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     <div
       ref={setNodeRef}
       style={{ ...style, ...backgroundStyle }}
-      // Attach mouse move and leave handlers for wiki mode.
       onMouseMove={tileData.mode === "wiki" ? handleMouseMove : undefined}
       onMouseLeave={tileData.mode === "wiki" ? handleMouseLeave : undefined}
       {...(isEditing ? {} : attributes)}
@@ -227,7 +263,6 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         <div
           onClick={(e) => {
             e.stopPropagation();
-            // Toggle completed state on tick click.
             const updatedTile = { ...tileData, completed: !tileData.completed };
             setTileData(updatedTile);
             if (onTileUpdate) {
@@ -245,6 +280,37 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           }}
         >
           ✔
+        </div>
+      )}
+      {/* Render opaque wiki info overlay in the top right corner if not dragging */}
+      {tileData.mode === "wiki" && !isDragging && showWikiInfoOverlay && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            top: "4px",
+            right: "4px",
+            backgroundColor: "white",
+            padding: "4px",
+            borderRadius: "4px",
+            fontSize: "0.8rem",
+            zIndex: 10,
+          }}
+        >
+          <div>{tileData.content}</div>
+          <div>
+            <a
+              onClick={(e) => e.stopPropagation()}
+              href={`https://oldschool.runescape.wiki/w/${encodeURIComponent(
+                tileData.content.replace(/ /g, "_")
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: "blue", textDecoration: "underline" }}
+            >
+              Wiki Link
+            </a>
+          </div>
         </div>
       )}
       {isEditing && (
