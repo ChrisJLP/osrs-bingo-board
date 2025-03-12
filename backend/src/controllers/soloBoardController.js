@@ -154,11 +154,12 @@ export const createSoloBoard = async (req, res) => {
       let playerRecord = await prisma.player.findUnique({
         where: { username: osrsUsername },
       });
+      const overallLevel = Number(hiscores.overallLevel) || 1;
       if (playerRecord) {
         playerRecord = await prisma.player.update({
           where: { username: osrsUsername },
           data: {
-            overallLevel: hiscores.overallLevel,
+            overallLevel: overallLevel,
             overallXp: BigInt(hiscores.overallXp),
             attackXp: BigInt(hiscores.attackXp),
             defenceXp: BigInt(hiscores.defenceXp),
@@ -189,7 +190,7 @@ export const createSoloBoard = async (req, res) => {
         playerRecord = await prisma.player.create({
           data: {
             username: osrsUsername,
-            overallLevel: hiscores.overallLevel,
+            overallLevel: overallLevel,
             overallXp: BigInt(hiscores.overallXp),
             attackXp: BigInt(hiscores.attackXp),
             defenceXp: BigInt(hiscores.defenceXp),
@@ -301,10 +302,11 @@ export const updateSoloBoard = async (req, res) => {
     if (osrsUsername) {
       const hiscores = await getHiscores(req, res, osrsUsername);
       if (!hiscores) return;
+      const overallLevel = Number(hiscores.overallLevel) || 1;
       const playerRecord = await prisma.player.upsert({
         where: { username: osrsUsername },
         update: {
-          overallLevel: hiscores.overallLevel,
+          overallLevel: overallLevel,
           overallXp: BigInt(hiscores.overallXp),
           attackXp: BigInt(hiscores.attackXp),
           defenceXp: BigInt(hiscores.defenceXp),
@@ -332,7 +334,7 @@ export const updateSoloBoard = async (req, res) => {
         },
         create: {
           username: osrsUsername,
-          overallLevel: hiscores.overallLevel,
+          overallLevel: overallLevel,
           overallXp: BigInt(hiscores.overallXp),
           attackXp: BigInt(hiscores.attackXp),
           defenceXp: BigInt(hiscores.defenceXp),
