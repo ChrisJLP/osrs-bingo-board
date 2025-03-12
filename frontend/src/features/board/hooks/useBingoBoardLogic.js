@@ -1,3 +1,4 @@
+// useBingoBoardLogic.js
 import { useState, useEffect } from "react";
 import { useBingoBoard } from "./useBingoBoard";
 
@@ -16,10 +17,10 @@ const useBingoBoardLogic = () => {
   const [boardName, setBoardName] = useState("");
   const [boardTitle, setBoardTitle] = useState("Bingo Board");
   const [boardPassword, setBoardPassword] = useState("");
-  const [osrsUsername, setOsrsUsername] = useState(""); // OSRS username state
+  const [osrsUsername, setOsrsUsername] = useState("");
   const [isExistingBoard, setIsExistingBoard] = useState(false);
 
-  // New state to cache OSRS hiscores data
+  // OSRS hiscores data
   const [osrsData, setOsrsData] = useState(null);
 
   // Modal visibility
@@ -36,7 +37,7 @@ const useBingoBoardLogic = () => {
   // API interactions
   const { error, fetchBoard, saveBoard, updateBoard } = useBingoBoard();
 
-  // Undo/Redo stacks
+  // Undo/Redo stacks (if undoStack is not empty, there are unsaved changes)
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
 
@@ -73,114 +74,7 @@ const useBingoBoardLogic = () => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // Client-side version of parseHiscoresData.
-  const parseHiscoresData = (textData) => {
-    const lines = textData.split("\n").filter((line) => line.trim() !== "");
-    if (lines.length < 24) return null;
-    const skills = [
-      "overall",
-      "attack",
-      "defence",
-      "strength",
-      "hitpoints",
-      "ranged",
-      "prayer",
-      "magic",
-      "cooking",
-      "woodcutting",
-      "fletching",
-      "fishing",
-      "firemaking",
-      "crafting",
-      "smithing",
-      "mining",
-      "herblore",
-      "agility",
-      "thieving",
-      "slayer",
-      "farming",
-      "runecrafting",
-      "hunter",
-      "construction",
-    ];
-    const result = {};
-    const overallParts = lines[0].split(",");
-    result.overallLevel = parseInt(overallParts[1], 10);
-    result.overallXp = parseInt(overallParts[2], 10);
-    for (let i = 1; i < skills.length; i++) {
-      const parts = lines[i].split(",");
-      const fieldName = skills[i] === "runecrafting" ? "runecraft" : skills[i];
-      result[`${fieldName}Xp`] = parseInt(parts[2], 10);
-    }
-    return result;
-  };
-
-  // Function to update cached OSRS data from hiscores API.
-  const updateOsrsData = async () => {
-    if (!osrsUsername) {
-      alert("Please enter an OSRS username.");
-      return;
-    }
-    try {
-      const response = await fetch(
-        `http://localhost:5001/api/osrs-hiscores?username=${encodeURIComponent(
-          osrsUsername
-        )}`
-      );
-      if (!response.ok) {
-        alert("Failed to fetch hiscores data. Please check the username.");
-        return;
-      }
-      const { data: textData } = await response.json();
-      const parsed = parseHiscoresData(textData);
-      if (!parsed) {
-        alert("Invalid OSRS username provided.");
-        return;
-      }
-      const allInvalid = Object.values(parsed).every((val) => val === -1);
-      if (allInvalid) {
-        alert("Invalid OSRS username provided.");
-        return;
-      }
-      setOsrsData(parsed);
-      alert("OSRS data updated successfully.");
-    } catch (error) {
-      console.error(error);
-      alert("Error fetching hiscores data.");
-    }
-  };
-
-  const confirmSave = async () => {
-    const boardDataToSave = {
-      name: boardName,
-      password: boardPassword,
-      title: boardTitle,
-      osrsUsername, // include OSRS username in payload
-      osrsData, // include cached hiscores data
-      rows,
-      columns,
-      tiles: order.map(
-        (tileId) =>
-          tiles[tileId] || { ...defaultTileData, content: tileId.toString() }
-      ),
-    };
-
-    let response = null;
-    if (isExistingBoard) {
-      response = await updateBoard(boardDataToSave);
-      if (response) {
-        alert("Board updated successfully!");
-        setShowSaveModal(false);
-      }
-    } else {
-      response = await saveBoard(boardDataToSave);
-      if (response) {
-        alert("Board saved successfully!");
-        setShowSaveModal(false);
-      }
-    }
-  };
-
+  // Full implementation for finding a board.
   const handleConfirmFind = async () => {
     const data = await fetchBoard(findBoardName);
     if (data) {
@@ -193,7 +87,7 @@ const useBingoBoardLogic = () => {
       (data.tiles || [])
         .sort((a, b) => a.position - b.position)
         .forEach((tile) => {
-          // Tile positions in your UI are 1-indexed.
+          // UI tile positions are 1-indexed.
           fetchedTiles[tile.position + 1] = {
             content: tile.content,
             target: tile.target,
@@ -210,9 +104,6 @@ const useBingoBoardLogic = () => {
       setTiles(fetchedTiles);
       setShowFindModal(false);
       setUndoStack([]);
-      setRedoStack([]);
-      // If a player is associated with this board,
-      // set the username and, if no cache exists, use the player's stored xp values.
       if (data.player) {
         setOsrsUsername(data.player.username);
         const fallbackOsrsData = {
@@ -241,9 +132,7 @@ const useBingoBoardLogic = () => {
           hunterXp: Number(data.player.hunterXp),
           constructionXp: Number(data.player.constructionXp),
         };
-        // Set the OSRS data cache using the player's stored data.
         setOsrsData(fallbackOsrsData);
-        // Optionally, you could call updateOsrsData() here to refresh data from the hiscores API.
       }
     }
   };
@@ -272,6 +161,41 @@ const useBingoBoardLogic = () => {
     setOrder(lastSnapshot.order);
   };
 
+  const hasUnsavedChanges = undoStack.length > 0;
+
+  const confirmSave = async () => {
+    const boardDataToSave = {
+      name: boardName,
+      password: boardPassword,
+      title: boardTitle,
+      osrsUsername,
+      osrsData,
+      rows,
+      columns,
+      tiles: order.map(
+        (tileId) =>
+          tiles[tileId] || { ...defaultTileData, content: tileId.toString() }
+      ),
+    };
+
+    let response = null;
+    if (isExistingBoard) {
+      response = await updateBoard(boardDataToSave);
+      if (response) {
+        alert("Board updated successfully!");
+        setShowSaveModal(false);
+        setUndoStack([]);
+      }
+    } else {
+      response = await saveBoard(boardDataToSave);
+      if (response) {
+        alert("Board saved successfully!");
+        setShowSaveModal(false);
+        setUndoStack([]);
+      }
+    }
+  };
+
   return {
     rows,
     setRows: handleRowsChange,
@@ -286,7 +210,7 @@ const useBingoBoardLogic = () => {
     osrsUsername,
     setOsrsUsername,
     osrsData,
-    updateOsrsData,
+    setOsrsData,
     isExistingBoard,
     showSaveModal,
     setShowSaveModal,
@@ -303,6 +227,7 @@ const useBingoBoardLogic = () => {
     handleConfirmFind,
     undo,
     redo,
+    hasUnsavedChanges,
   };
 };
 

@@ -1,4 +1,5 @@
-import React from "react";
+// BingoBoard.jsx
+import React, { useEffect } from "react";
 import SaveBoardModal from "./SaveBoardModal";
 import FindBoardModal from "./FindBoardModal";
 import BoardControls from "./BoardControls";
@@ -37,7 +38,23 @@ const BingoBoard = () => {
     handleConfirmFind,
     undo,
     redo,
+    hasUnsavedChanges,
   } = useBingoBoardLogic();
+
+  // Warn user if unsaved changes exist when trying to leave the page.
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue =
+          "You have unsaved changes on your board. Are you sure you want to leave?";
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
 
   return (
     <div className="p-4 text-center flex flex-col items-center">
@@ -65,7 +82,7 @@ const BingoBoard = () => {
             onChange={(e) => setOsrsUsername(e.target.value)}
             className="border rounded p-1"
             placeholder="Enter OSRS username"
-            autoComplete="off" // prevents unwanted browser autofill
+            autoComplete="off"
           />
           <button
             onClick={updateOsrsData}
