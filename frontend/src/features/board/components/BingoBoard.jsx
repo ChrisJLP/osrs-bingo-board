@@ -80,7 +80,6 @@ const BingoBoard = () => {
 
   return (
     <div className="p-4 text-center flex flex-col items-center">
-      <h1 className="text-xl font-bold mb-4">{boardTitle}</h1>
       <div className="w-full flex flex-col items-center mb-2">
         <BoardControls
           rows={rows}
@@ -96,6 +95,8 @@ const BingoBoard = () => {
             Redo
           </button>
         </div>
+        {/* Moved board title here */}
+        <h1 className="text-xl font-bold my-4">{boardTitle}</h1>
         <div className="osrs-username-container my-2">
           <label className="mr-2 font-semibold">OSRS Username:</label>
           <input
