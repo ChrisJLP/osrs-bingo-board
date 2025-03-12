@@ -1,5 +1,5 @@
 // Tile.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import TileEditor from "./TileEditor";
@@ -69,13 +69,16 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
       completed: false,
     }
   );
+  // State for showing the complete tick overlay
+  const [showCompleteTick, setShowCompleteTick] = useState(false);
+  const hoverTimerRef = useRef(null);
 
-  // When initialData changes, update tileData.
+  // Update tile data when initialData changes.
   useEffect(() => {
     setTileData(initialData);
   }, [initialData]);
 
-  // When osrsData changes, update the current level for skill tiles.
+  // Update current level for skill tiles when osrsData changes.
   useEffect(() => {
     if (tileData.mode === "skill" && tileData.skill && osrsData) {
       const xpProp = skillMapping[tileData.skill];
@@ -91,11 +94,13 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     }
   }, [osrsData, tileData.mode, tileData.skill, tileData.currentLevel]);
 
+  // Base style for the tile container.
   const style = {
     transform: isEditing ? "none" : CSS.Transform.toString(transform),
     transition: isEditing ? "none" : transition,
     pointerEvents: isEditing ? "none" : "auto",
     position: "relative",
+    backgroundColor: tileData.completed ? "rgba(0,255,0,0.1)" : undefined,
   };
 
   const handleSave = (newData) => {
@@ -110,7 +115,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     setIsEditing(false);
   };
 
-  // Dedicated branch for skill mode
+  // Dedicated branch for skill mode.
   if (tileData.mode === "skill" && tileData.skill) {
     const skillBackgroundStyle = tileData.imageUrl
       ? {
@@ -132,7 +137,6 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           setIsEditing(true);
         }}
       >
-        {/* Only show progress for skill tiles */}
         <div className="absolute bottom-2 w-full text-center">
           {`${tileData.currentLevel}/${tileData.goalLevel}`}
         </div>
@@ -160,10 +164,46 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     };
   }
 
+  // Handle mouse movement: only trigger tick if over bottom left 25% region.
+  const handleMouseMove = (e) => {
+    if (tileData.mode === "wiki" && !tileData.completed) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      // Check if within left 25% and bottom 25% of the tile.
+      if (x < rect.width * 0.25 && y > rect.height * 0.75) {
+        if (!hoverTimerRef.current) {
+          hoverTimerRef.current = setTimeout(() => {
+            setShowCompleteTick(true);
+          }, 300);
+        }
+      } else {
+        if (hoverTimerRef.current) {
+          clearTimeout(hoverTimerRef.current);
+          hoverTimerRef.current = null;
+        }
+        setShowCompleteTick(false);
+      }
+    }
+  };
+
+  // Clear the timer and hide tick on mouse leave.
+  const handleMouseLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setShowCompleteTick(false);
+  };
+
+  // Render the tile.
   return (
     <div
       ref={setNodeRef}
       style={{ ...style, ...backgroundStyle }}
+      // Attach mouse move and leave handlers for wiki mode.
+      onMouseMove={tileData.mode === "wiki" ? handleMouseMove : undefined}
+      onMouseLeave={tileData.mode === "wiki" ? handleMouseLeave : undefined}
       {...(isEditing ? {} : attributes)}
       {...(isEditing ? {} : listeners)}
       className="relative border border-black flex items-center justify-center p-14 cursor-pointer"
@@ -172,7 +212,6 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         setIsEditing(true);
       }}
     >
-      {/* Render text for non-skill tiles */}
       {tileData.mode !== "wiki" && (
         <span>{tileData.mode === "custom" ? tileData.content : ""}</span>
       )}
@@ -181,6 +220,31 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           {`${formatNumber(tileData.progress)}/${formatNumber(
             tileData.target
           )}`}
+        </div>
+      )}
+      {/* Render tick overlay in the bottom left corner */}
+      {tileData.mode === "wiki" && (showCompleteTick || tileData.completed) && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            // Toggle completed state on tick click.
+            const updatedTile = { ...tileData, completed: !tileData.completed };
+            setTileData(updatedTile);
+            if (onTileUpdate) {
+              onTileUpdate(id, updatedTile);
+            }
+          }}
+          style={{
+            position: "absolute",
+            bottom: "4px",
+            left: "4px",
+            cursor: "pointer",
+            color: "green",
+            fontSize: "1.5rem",
+            zIndex: 10,
+          }}
+        >
+          ✔
         </div>
       )}
       {isEditing && (
