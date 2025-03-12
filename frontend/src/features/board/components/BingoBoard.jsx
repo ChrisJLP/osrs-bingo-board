@@ -1,3 +1,4 @@
+// frontend/src/features/board/components/BingoBoard.jsx
 import React from "react";
 import SaveBoardModal from "./SaveBoardModal";
 import FindBoardModal from "./FindBoardModal";
@@ -17,8 +18,10 @@ const BingoBoard = () => {
     setBoardTitle,
     boardPassword,
     setBoardPassword,
-    osrsUsername, // OSRS username state
-    setOsrsUsername, // OSRS username setter
+    osrsUsername,
+    setOsrsUsername,
+    osrsData,
+    updateOsrsData,
     isExistingBoard,
     showSaveModal,
     setShowSaveModal,
@@ -40,20 +43,37 @@ const BingoBoard = () => {
   return (
     <div className="p-4 text-center flex flex-col items-center">
       <h1 className="text-xl font-bold mb-4">{boardTitle}</h1>
-      <div className="w-full flex justify-between items-center mb-2">
+      <div className="w-full flex flex-col items-center mb-2">
         <BoardControls
           rows={rows}
           columns={columns}
           onRowsChange={setRows}
           onColumnsChange={setColumns}
         />
-        <div className="flex space-x-2">
+        <div className="flex space-x-2 mt-2">
           <button onClick={undo} className="bg-gray-200 text-black p-2 rounded">
             Undo
           </button>
           <button onClick={redo} className="bg-gray-200 text-black p-2 rounded">
             Redo
           </button>
+        </div>
+        <div className="osrs-username-container my-2">
+          <label className="mr-2 font-semibold">OSRS Username:</label>
+          <input
+            type="text"
+            value={osrsUsername}
+            onChange={(e) => setOsrsUsername(e.target.value)}
+            className="border rounded p-1"
+            placeholder="Enter OSRS username"
+          />
+          <button
+            onClick={updateOsrsData}
+            className="bg-blue-500 text-white p-1 rounded ml-2"
+          >
+            Update
+          </button>
+          {osrsData && <span className="ml-2 text-green-600">Data Cached</span>}
         </div>
       </div>
       <BoardGrid
@@ -63,6 +83,7 @@ const BingoBoard = () => {
         onTileUpdate={handleTileUpdate}
         order={order}
         onOrderChange={setOrder}
+        osrsData={osrsData}
       />
       <div className="mt-4">
         <button
@@ -82,8 +103,6 @@ const BingoBoard = () => {
         setBoardTitle={setBoardTitle}
         boardPassword={boardPassword}
         setBoardPassword={setBoardPassword}
-        osrsUsername={osrsUsername} // pass OSRS username state
-        setOsrsUsername={setOsrsUsername} // pass OSRS username setter
         errorMessage={error}
         isExistingBoard={isExistingBoard}
       />

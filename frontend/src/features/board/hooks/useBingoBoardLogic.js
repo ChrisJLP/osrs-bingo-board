@@ -1,3 +1,4 @@
+// frontend/src/hooks/useBingoBoardLogic.js
 import { useState, useEffect } from "react";
 import { useBingoBoard } from "./useBingoBoard";
 
@@ -18,6 +19,9 @@ const useBingoBoardLogic = () => {
   const [boardPassword, setBoardPassword] = useState("");
   const [osrsUsername, setOsrsUsername] = useState(""); // OSRS username state
   const [isExistingBoard, setIsExistingBoard] = useState(false);
+
+  // New state to cache OSRS hiscores data
+  const [osrsData, setOsrsData] = useState(null);
 
   // Modal visibility
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -70,12 +74,91 @@ const useBingoBoardLogic = () => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
+  // New: Client-side version of parseHiscoresData.
+  const parseHiscoresData = (textData) => {
+    const lines = textData.split("\n").filter((line) => line.trim() !== "");
+    if (lines.length < 24) return null;
+    const skills = [
+      "overall",
+      "attack",
+      "defence",
+      "strength",
+      "hitpoints",
+      "ranged",
+      "prayer",
+      "magic",
+      "cooking",
+      "woodcutting",
+      "fletching",
+      "fishing",
+      "firemaking",
+      "crafting",
+      "smithing",
+      "mining",
+      "herblore",
+      "agility",
+      "thieving",
+      "slayer",
+      "farming",
+      "runecrafting", // map to runecraft
+      "hunter",
+      "construction",
+    ];
+    const result = {};
+    const overallParts = lines[0].split(",");
+    result.overallLevel = parseInt(overallParts[1], 10);
+    result.overallXp = parseInt(overallParts[2], 10);
+    for (let i = 1; i < skills.length; i++) {
+      const parts = lines[i].split(",");
+      const fieldName = skills[i] === "runecrafting" ? "runecraft" : skills[i];
+      result[`${fieldName}Xp`] = parseInt(parts[2], 10);
+    }
+    return result;
+  };
+
+  // New: Function to update cached OSRS data.
+  const updateOsrsData = async () => {
+    if (!osrsUsername) {
+      alert("Please enter an OSRS username.");
+      return;
+    }
+    try {
+      // Use your backend proxy endpoint instead of the direct hiscores URL.
+      const response = await fetch(
+        `http://localhost:5001/api/osrs-hiscores?username=${encodeURIComponent(
+          osrsUsername
+        )}`
+      );
+      if (!response.ok) {
+        alert("Failed to fetch hiscores data. Please check the username.");
+        return;
+      }
+      const { data: textData } = await response.json();
+      const parsed = parseHiscoresData(textData);
+      if (!parsed) {
+        alert("Invalid OSRS username provided.");
+        return;
+      }
+      const allInvalid = Object.values(parsed).every((val) => val === -1);
+      if (allInvalid) {
+        alert("Invalid OSRS username provided.");
+        return;
+      }
+      setOsrsData(parsed);
+      alert("OSRS data updated successfully.");
+    } catch (error) {
+      console.error(error);
+      alert("Error fetching hiscores data.");
+    }
+  };
+
   const confirmSave = async () => {
     const boardDataToSave = {
       name: boardName,
       password: boardPassword,
       title: boardTitle,
       osrsUsername, // include OSRS username in payload
+      osrsData, // include cached hiscores data
       rows,
       columns,
       tiles: order.map(
@@ -125,6 +208,11 @@ const useBingoBoardLogic = () => {
       setShowFindModal(false);
       setUndoStack([]);
       setRedoStack([]);
+      // Optionally, if data.player exists, update OSRS username and cache.
+      if (data.player) {
+        setOsrsUsername(data.player.username);
+        // You may wish to cache the hiscores data here as well.
+      }
     }
   };
 
@@ -163,8 +251,10 @@ const useBingoBoardLogic = () => {
     setBoardTitle,
     boardPassword,
     setBoardPassword,
-    osrsUsername, // expose OSRS username
-    setOsrsUsername, // expose its setter
+    osrsUsername,
+    setOsrsUsername,
+    osrsData, // expose cached OSRS data
+    updateOsrsData, // function to update cached data
     isExistingBoard,
     showSaveModal,
     setShowSaveModal,

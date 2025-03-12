@@ -20,14 +20,13 @@ const BoardGrid = ({
   onTileUpdate,
   order,
   onOrderChange,
+  osrsData,
 }) => {
-  // Use parent's order if available; otherwise, default to a new order.
   const currentOrder =
     order && order.length === rows * columns
       ? order
       : Array.from({ length: rows * columns }, (_, index) => index + 1);
 
-  // When rows/columns change (for example, when a row is removed), update parent's order.
   useEffect(() => {
     const newOrder = Array.from(
       { length: rows * columns },
@@ -71,6 +70,7 @@ const BoardGrid = ({
                   }
                 }
                 onTileUpdate={onTileUpdate}
+                osrsData={osrsData}
               />
             ))}
           </div>

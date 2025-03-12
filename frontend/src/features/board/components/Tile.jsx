@@ -13,7 +13,7 @@ const formatNumber = (num) => {
   return num.toString();
 };
 
-const Tile = ({ id, data: initialData, onTileUpdate }) => {
+const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: id.toString() });
 
@@ -28,19 +28,17 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
     }
   );
 
-  // Ensure local tile data updates when props change
   useEffect(() => {
     setTileData(initialData);
   }, [initialData]);
 
   const style = {
-    transform: isEditing ? "none" : CSS.Transform.toString(transform), // Disable movement when editing
-    transition: isEditing ? "none" : transition, // Disable animations when editing
-    pointerEvents: isEditing ? "none" : "auto", // Prevent drag events while editing
+    transform: isEditing ? "none" : CSS.Transform.toString(transform),
+    transition: isEditing ? "none" : transition,
+    pointerEvents: isEditing ? "none" : "auto",
     position: "relative",
   };
 
-  // Save tile data and notify parent component
   const handleSave = (newData) => {
     setTileData(newData);
     if (onTileUpdate) {
@@ -53,17 +51,44 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
     setIsEditing(false);
   };
 
-  const percentage =
-    tileData.target > 0
-      ? Math.min(100, Math.round((tileData.progress / tileData.target) * 100))
-      : 0;
+  if (tileData.mode === "skill" && tileData.skill) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        {...attributes}
+        {...listeners}
+        className="relative border border-black bg-white flex items-center justify-center p-14 cursor-pointer"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsEditing(true);
+        }}
+      >
+        <div className="text-center">
+          <div className="text-xl font-bold">{tileData.skill}</div>
+          <div>
+            {tileData.currentLevel}/{tileData.goalLevel}
+          </div>
+        </div>
+        {isEditing && (
+          <TileEditor
+            initialData={tileData}
+            tilePosition={id}
+            onSave={handleSave}
+            onCancel={handleCancel}
+            osrsData={osrsData}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...(isEditing ? {} : attributes)} // Disable attributes when editing
-      {...(isEditing ? {} : listeners)} // Disable listeners when editing
+      {...(isEditing ? {} : attributes)}
+      {...(isEditing ? {} : listeners)}
       className="relative border border-black bg-white flex items-center justify-center p-14 cursor-pointer"
       onClick={(e) => {
         e.stopPropagation();
@@ -71,27 +96,20 @@ const Tile = ({ id, data: initialData, onTileUpdate }) => {
       }}
     >
       <span>{tileData.content}</span>
-
       {tileData.target > 0 && (
-        <>
-          <div
-            className="absolute top-0 left-0 right-0 h-full bg-green-500 opacity-50"
-            style={{ height: `${percentage}%` }}
-          ></div>
-          <div className="absolute bottom-2 w-full text-center">
-            {`${formatNumber(tileData.progress)}/${formatNumber(
-              tileData.target
-            )}`}
-          </div>
-        </>
+        <div className="absolute bottom-2 w-full text-center">
+          {`${formatNumber(tileData.progress)}/${formatNumber(
+            tileData.target
+          )}`}
+        </div>
       )}
-
       {isEditing && (
         <TileEditor
           initialData={tileData}
           tilePosition={id}
           onSave={handleSave}
           onCancel={handleCancel}
+          osrsData={osrsData}
         />
       )}
     </div>
