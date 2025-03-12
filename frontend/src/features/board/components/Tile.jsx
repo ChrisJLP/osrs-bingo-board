@@ -4,6 +4,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import TileEditor from "./TileEditor";
 
+// Helper to format numbers
 const formatNumber = (num) => {
   if (num >= 1_000_000) {
     return (num / 1_000_000).toFixed(num % 1_000_000 ? 1 : 0) + "m";
@@ -11,6 +12,47 @@ const formatNumber = (num) => {
     return (num / 1_000).toFixed(num % 1_000 ? 1 : 0) + "k";
   }
   return num.toString();
+};
+
+// Function to calculate RuneScape level from XP
+const xpToLevel = (xp) => {
+  let points = 0;
+  for (let level = 1; level < 100; level++) {
+    points += Math.floor(level + 300 * Math.pow(2, level / 7));
+    const xpForLevel = Math.floor(points / 4);
+    if (xpForLevel > xp) {
+      return level;
+    }
+  }
+  return 99;
+};
+
+// Mapping of skill names to their corresponding hiscores property keys
+const skillMapping = {
+  Overall: "overallXp",
+  Attack: "attackXp",
+  Defence: "defenceXp",
+  Strength: "strengthXp",
+  Hitpoints: "hitpointsXp",
+  Ranged: "rangedXp",
+  Prayer: "prayerXp",
+  Magic: "magicXp",
+  Cooking: "cookingXp",
+  Woodcutting: "woodcuttingXp",
+  Fletching: "fletchingXp",
+  Fishing: "fishingXp",
+  Firemaking: "firemakingXp",
+  Crafting: "craftingXp",
+  Smithing: "smithingXp",
+  Mining: "miningXp",
+  Herblore: "herbloreXp",
+  Agility: "agilityXp",
+  Thieving: "thievingXp",
+  Slayer: "slayerXp",
+  Farming: "farmingXp",
+  Runecrafting: "runecraftXp",
+  Hunter: "hunterXp",
+  Construction: "constructionXp",
 };
 
 const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
@@ -28,9 +70,26 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     }
   );
 
+  // When initialData changes, update tileData.
   useEffect(() => {
     setTileData(initialData);
   }, [initialData]);
+
+  // When osrsData changes, update the current level for skill tiles.
+  useEffect(() => {
+    if (tileData.mode === "skill" && tileData.skill && osrsData) {
+      const xpProp = skillMapping[tileData.skill];
+      if (xpProp) {
+        const xpValue = osrsData[xpProp];
+        if (xpValue !== undefined) {
+          const newLevel = xpToLevel(Number(xpValue));
+          if (newLevel !== tileData.currentLevel) {
+            setTileData((prev) => ({ ...prev, currentLevel: newLevel }));
+          }
+        }
+      }
+    }
+  }, [osrsData, tileData.mode, tileData.skill, tileData.currentLevel]);
 
   const style = {
     transform: isEditing ? "none" : CSS.Transform.toString(transform),
@@ -73,7 +132,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           setIsEditing(true);
         }}
       >
-        {/* Display progress only */}
+        {/* Only show progress for skill tiles */}
         <div className="absolute bottom-2 w-full text-center">
           {`${tileData.currentLevel}/${tileData.goalLevel}`}
         </div>
@@ -113,7 +172,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         setIsEditing(true);
       }}
     >
-      {/* For non-skill tiles, render the text content */}
+      {/* Render text for non-skill tiles */}
       {tileData.mode !== "wiki" && (
         <span>{tileData.mode === "custom" ? tileData.content : ""}</span>
       )}
