@@ -38,7 +38,7 @@ const TemplateBoardModal = ({
           value={boardTitle}
           onChange={(e) => setBoardTitle(e.target.value)}
           className="border rounded p-1 mb-2 w-full"
-          placeholder="Enter new board title"
+          placeholder="Enter board title"
         />
         <input
           type="password"

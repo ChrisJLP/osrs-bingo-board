@@ -28,6 +28,13 @@ const useBingoBoardLogic = () => {
   const [showFindModal, setShowFindModal] = useState(false);
   const [findBoardName, setFindBoardName] = useState("");
 
+  // New state for template board modal
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateBoardName, setTemplateBoardName] = useState("");
+  const [templateBoardTitle, setTemplateBoardTitle] = useState("");
+  const [templateBoardPassword, setTemplateBoardPassword] = useState("");
+  const [templateOsrsUsername, setTemplateOsrsUsername] = useState("");
+
   // Tiles and order
   const [tiles, setTiles] = useState({});
   const [order, setOrder] = useState(
@@ -37,7 +44,7 @@ const useBingoBoardLogic = () => {
   // API interactions
   const { error, fetchBoard, saveBoard, updateBoard } = useBingoBoard();
 
-  // Undo/Redo stacks (if undoStack is not empty, there are unsaved changes)
+  // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
 
@@ -74,7 +81,6 @@ const useBingoBoardLogic = () => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // Full implementation for finding a board.
   const handleConfirmFind = async () => {
     const data = await fetchBoard(findBoardName);
     if (data) {
@@ -196,17 +202,17 @@ const useBingoBoardLogic = () => {
     }
   };
 
-  // NEW: updateOsrsData function to fetch and update OSRS hiscores data via a CORS proxy.
-  const updateOsrsData = async () => {
-    if (!osrsUsername) {
+  // Modified updateOsrsData accepts an optional username parameter.
+  const updateOsrsData = async (usernameParam) => {
+    const usernameToUse = usernameParam || osrsUsername;
+    if (!usernameToUse) {
       alert("Please enter an OSRS username first.");
       return;
     }
     try {
       const hiscoreUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(
-        osrsUsername
+        usernameToUse
       )}`;
-      // Use ThingProxy to bypass CORS restrictions.
       const proxyUrl = `https://thingproxy.freeboard.io/fetch/${hiscoreUrl}`;
       const response = await fetch(proxyUrl);
       if (!response.ok) {
@@ -275,6 +281,70 @@ const useBingoBoardLogic = () => {
     }
   };
 
+  const createTemplateBoard = async () => {
+    // Clone current board tiles with progress reset and items marked incomplete.
+    const clonedTiles = {};
+    order.forEach((tileId) => {
+      const tile = tiles[tileId] || {
+        ...defaultTileData,
+        content: tileId.toString(),
+      };
+      if (tile.mode === "skill") {
+        clonedTiles[tileId] = {
+          ...tile,
+          progress: 0,
+          completed: false,
+          currentLevel: templateOsrsUsername ? 0 : 1, // new OSRS user: start at 0 so hiscores update later
+        };
+      } else {
+        clonedTiles[tileId] = {
+          ...tile,
+          progress: 0,
+          completed: false,
+        };
+      }
+    });
+    const newBoardData = {
+      name: templateBoardName,
+      password: templateBoardPassword,
+      title: templateBoardTitle, // use the new title input from the modal
+      osrsUsername: templateOsrsUsername,
+      rows,
+      columns,
+      // Convert clonedTiles object to an array using order.
+      tiles: order.map((tileId) => clonedTiles[tileId]),
+    };
+    const response = await saveBoard(newBoardData);
+    if (response) {
+      alert("Template board created successfully!");
+      setUndoStack([]);
+      // Update state so the new board displays immediately.
+      setBoardName(templateBoardName);
+      setBoardTitle(templateBoardTitle);
+      setBoardPassword(templateBoardPassword);
+      setOsrsUsername(templateOsrsUsername);
+      setTiles(clonedTiles);
+      setOrder(order); // re-set order even if unchanged
+      // Update OSRS data using the new username if provided
+      if (templateOsrsUsername) {
+        await updateOsrsData(templateOsrsUsername);
+      } else {
+        setOsrsData(null);
+      }
+      setIsExistingBoard(false); // new board is treated as new
+      setShowTemplateModal(false);
+      // Reset template modal fields
+      setTemplateBoardName("");
+      setTemplateBoardTitle("");
+      setTemplateBoardPassword("");
+      setTemplateOsrsUsername("");
+    } else {
+      alert(
+        "Failed to create template board. Board name might already be taken."
+      );
+    }
+  };
+
   return {
     rows,
     setRows: handleRowsChange,
@@ -307,7 +377,18 @@ const useBingoBoardLogic = () => {
     undo,
     redo,
     hasUnsavedChanges,
-    updateOsrsData, // <-- now using ThingProxy
+    updateOsrsData,
+    showTemplateModal,
+    setShowTemplateModal,
+    templateBoardName,
+    setTemplateBoardName,
+    templateBoardTitle,
+    setTemplateBoardTitle,
+    templateBoardPassword,
+    setTemplateBoardPassword,
+    templateOsrsUsername,
+    setTemplateOsrsUsername,
+    createTemplateBoard,
   };
 };
 

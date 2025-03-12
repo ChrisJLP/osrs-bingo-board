@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import SaveBoardModal from "./SaveBoardModal";
 import FindBoardModal from "./FindBoardModal";
+import TemplateBoardModal from "./templateBoardModal";
 import BoardControls from "./BoardControls";
 import BoardGrid from "./BoardGrid";
 import useBingoBoardLogic from "../hooks/useBingoBoardLogic";
@@ -39,6 +40,17 @@ const BingoBoard = () => {
     undo,
     redo,
     hasUnsavedChanges,
+    showTemplateModal,
+    setShowTemplateModal,
+    templateBoardName,
+    setTemplateBoardName,
+    templateBoardTitle,
+    setTemplateBoardTitle,
+    templateBoardPassword,
+    setTemplateBoardPassword,
+    templateOsrsUsername,
+    setTemplateOsrsUsername,
+    createTemplateBoard,
   } = useBingoBoardLogic();
 
   // Warn user if unsaved changes exist when trying to leave the page.
@@ -55,6 +67,16 @@ const BingoBoard = () => {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
+
+  const handleTemplateClick = () => {
+    if (hasUnsavedChanges) {
+      const confirmUnsaved = window.confirm(
+        "You have unsaved changes. Please save your changes first, or if you continue, they will be discarded. Continue?"
+      );
+      if (!confirmUnsaved) return;
+    }
+    setShowTemplateModal(true);
+  };
 
   return (
     <div className="p-4 text-center flex flex-col items-center">
@@ -85,7 +107,7 @@ const BingoBoard = () => {
             autoComplete="off"
           />
           <button
-            onClick={updateOsrsData}
+            onClick={() => updateOsrsData()}
             className="bg-blue-500 text-white p-1 rounded ml-2"
           >
             Update
@@ -102,12 +124,18 @@ const BingoBoard = () => {
         onOrderChange={setOrder}
         osrsData={osrsData}
       />
-      <div className="mt-4">
+      <div className="mt-4 flex space-x-2">
         <button
           onClick={() => setShowSaveModal(true)}
           className="bg-blue-500 text-white p-2 rounded"
         >
           {isExistingBoard ? "Update board" : "Save Board"}
+        </button>
+        <button
+          onClick={handleTemplateClick}
+          className="bg-blue-500 text-white p-2 rounded"
+        >
+          Use board as a template
         </button>
       </div>
       <SaveBoardModal
@@ -129,6 +157,20 @@ const BingoBoard = () => {
         onCancel={() => setShowFindModal(false)}
         findBoardName={findBoardName}
         setFindBoardName={setFindBoardName}
+        errorMessage={error}
+      />
+      <TemplateBoardModal
+        isOpen={showTemplateModal}
+        onConfirm={createTemplateBoard}
+        onCancel={() => setShowTemplateModal(false)}
+        boardName={templateBoardName}
+        setBoardName={setTemplateBoardName}
+        boardTitle={templateBoardTitle}
+        setBoardTitle={setTemplateBoardTitle}
+        boardPassword={templateBoardPassword}
+        setBoardPassword={setTemplateBoardPassword}
+        osrsUsername={templateOsrsUsername}
+        setOsrsUsername={setTemplateOsrsUsername}
         errorMessage={error}
       />
     </div>
