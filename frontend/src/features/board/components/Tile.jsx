@@ -1,3 +1,4 @@
+// Tile.jsx
 import React, { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -50,6 +51,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     setIsEditing(false);
   };
 
+  // Dedicated branch for skill mode
   if (tileData.mode === "skill" && tileData.skill) {
     const skillBackgroundStyle = tileData.imageUrl
       ? {
@@ -71,7 +73,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           setIsEditing(true);
         }}
       >
-        {/* Progress display at the bottom */}
+        {/* Display progress only */}
         <div className="absolute bottom-2 w-full text-center">
           {`${tileData.currentLevel}/${tileData.goalLevel}`}
         </div>
@@ -88,19 +90,33 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     );
   }
 
+  // For wiki and custom modes, apply wiki background if available.
+  let backgroundStyle = {};
+  if (tileData.mode === "wiki" && tileData.imageUrl) {
+    backgroundStyle = {
+      backgroundImage: `url(${tileData.imageUrl})`,
+      backgroundSize: "40%",
+      backgroundRepeat: "no-repeat",
+      backgroundPosition: "center",
+    };
+  }
+
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, ...backgroundStyle }}
       {...(isEditing ? {} : attributes)}
       {...(isEditing ? {} : listeners)}
-      className="relative border border-black bg-white flex items-center justify-center p-14 cursor-pointer"
+      className="relative border border-black flex items-center justify-center p-14 cursor-pointer"
       onClick={(e) => {
         e.stopPropagation();
         setIsEditing(true);
       }}
     >
-      <span>{tileData.content}</span>
+      {/* For non-skill tiles, render the text content */}
+      {tileData.mode !== "wiki" && (
+        <span>{tileData.mode === "custom" ? tileData.content : ""}</span>
+      )}
       {tileData.target > 0 && (
         <div className="absolute bottom-2 w-full text-center">
           {`${formatNumber(tileData.progress)}/${formatNumber(

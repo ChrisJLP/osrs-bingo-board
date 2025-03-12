@@ -1,50 +1,53 @@
-// frontend/src/features/board/components/WikiSearch.jsx
+// WikiSearch.jsx
 import React, { useState, useEffect } from "react";
 
 const WikiSearch = ({ onSelect }) => {
   const [query, setQuery] = useState("");
-  const [entries, setEntries] = useState([]);
-  const [filteredResults, setFilteredResults] = useState([]);
+  const [results, setResults] = useState([]);
 
   useEffect(() => {
-    const fetchEntries = async () => {
-      try {
-        const category = "Category:Items"; // using one category for simplicity
-        const res = await fetch(
-          `https://oldschool.runescape.wiki/api.php?action=query&list=categorymembers&cmtitle=${encodeURIComponent(
-            category
-          )}&cmlimit=500&format=json&origin=*`,
-          {
-            headers: {
-              "User-Agent": "OSRS Bingo App (your_email@example.com)",
-            },
-          }
-        );
-        const data = await res.json();
-        if (data.query && data.query.categorymembers) {
-          const items = data.query.categorymembers.map((item) => item.title);
-          setEntries([...new Set(items)]);
-        }
-      } catch (error) {
-        console.error("Error fetching OSRS Wiki entries:", error);
-      }
-    };
-    fetchEntries();
-  }, []);
-
-  const handleInputChange = (e) => {
-    const value = e.target.value;
-    setQuery(value);
-    if (!value) {
-      setFilteredResults([]);
+    if (!query) {
+      setResults([]);
       return;
     }
-    const filtered = entries.filter(
-      (entry) =>
-        entry.toLowerCase().includes(value.toLowerCase()) &&
-        !entry.startsWith("Category:")
-    );
-    setFilteredResults(filtered);
+    const fetchResults = async () => {
+      try {
+        const res = await fetch(
+          `https://oldschool.runescape.wiki/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(
+            query
+          )}&prop=pageimages&pithumbsize=100&format=json&origin=*`
+        );
+        const data = await res.json();
+        if (data.query && data.query.pages) {
+          const pages = Object.values(data.query.pages);
+          const sorted = pages.sort((a, b) => a.index - b.index);
+          setResults(sorted);
+        } else {
+          setResults([]);
+        }
+      } catch (error) {
+        console.error("Error fetching OSRS Wiki search results:", error);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      fetchResults();
+    }, 500); // debounce for 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [query]);
+
+  const handleInputChange = (e) => {
+    setQuery(e.target.value);
+  };
+
+  const handleSelect = (result) => {
+    onSelect({
+      title: result.title,
+      imageUrl: result.thumbnail ? result.thumbnail.source : "",
+    });
+    setQuery("");
+    setResults([]);
   };
 
   return (
@@ -55,18 +58,28 @@ const WikiSearch = ({ onSelect }) => {
         value={query}
         onChange={handleInputChange}
       />
-      {filteredResults.length > 0 && (
-        <ul>
-          {filteredResults.map((entry) => (
+      {results.length > 0 && (
+        <ul style={{ listStyle: "none", padding: 0 }}>
+          {results.map((result) => (
             <li
-              key={entry}
-              onClick={() => {
-                onSelect(entry);
-                setQuery("");
-                setFilteredResults([]);
+              key={result.pageid}
+              onClick={() => handleSelect(result)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "4px",
+                cursor: "pointer",
               }}
             >
-              {entry}
+              {result.thumbnail && (
+                <img
+                  src={result.thumbnail.source}
+                  alt={result.title}
+                  style={{ width: "20px", height: "20px" }}
+                />
+              )}
+              <span>{result.title}</span>
             </li>
           ))}
         </ul>

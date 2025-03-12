@@ -1,3 +1,4 @@
+// TileEditor.jsx
 import React, { useRef, useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import WikiSearch from "./WikiSearch";
@@ -135,6 +136,9 @@ const TileEditor = ({
   );
   const [goalLevel, setGoalLevel] = useState(initialData.goalLevel || "");
 
+  // New state for wiki image URL
+  const [wikiImageUrl, setWikiImageUrl] = useState(initialData.imageUrl || "");
+
   // When mode is "skill" and a skill is selected, auto-calculate level if osrsData exists.
   useEffect(() => {
     if (mode === "skill" && osrsData && skill) {
@@ -148,7 +152,6 @@ const TileEditor = ({
   const saveTileData = () => {
     if (mode === "skill") {
       // Save skill tile data with the corresponding skill icon URL
-      // Include a content field so Prisma receives a valid value.
       onSave({
         mode: "skill",
         skill,
@@ -157,8 +160,16 @@ const TileEditor = ({
         imageUrl: getSkillIcon(skill),
         content: skill,
       });
+    } else if (mode === "wiki") {
+      // Save wiki tile data with the selected image URL
+      onSave({
+        mode: "wiki",
+        content, // the title of the wiki item
+        imageUrl: wikiImageUrl,
+        ...criteria,
+      });
     } else {
-      onSave({ content, ...criteria });
+      onSave({ mode: "custom", content, ...criteria });
     }
     onCancel();
   };
@@ -201,7 +212,13 @@ const TileEditor = ({
         <div className="mb-4">
           {mode === "wiki" && (
             <>
-              <WikiSearch onSelect={handleContentChange} />
+              <WikiSearch
+                onSelect={(result) => {
+                  // Update both the content (title) and the wiki image URL
+                  handleContentChange(result.title);
+                  setWikiImageUrl(result.imageUrl);
+                }}
+              />
               <div className="mt-2">
                 <strong>Currently selected:</strong> {content || "None"}
               </div>
@@ -218,7 +235,6 @@ const TileEditor = ({
                   value={skill}
                   onChange={(e) => {
                     setSkill(e.target.value);
-                    // If OSRS data is available, auto-calc current level
                     if (
                       osrsData &&
                       osrsData[skillMapping[e.target.value]] !== undefined
