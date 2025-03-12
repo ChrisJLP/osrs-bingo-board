@@ -196,6 +196,85 @@ const useBingoBoardLogic = () => {
     }
   };
 
+  // NEW: updateOsrsData function to fetch and update OSRS hiscores data via a CORS proxy.
+  const updateOsrsData = async () => {
+    if (!osrsUsername) {
+      alert("Please enter an OSRS username first.");
+      return;
+    }
+    try {
+      const hiscoreUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(
+        osrsUsername
+      )}`;
+      // Use ThingProxy to bypass CORS restrictions.
+      const proxyUrl = `https://thingproxy.freeboard.io/fetch/${hiscoreUrl}`;
+      const response = await fetch(proxyUrl);
+      if (!response.ok) {
+        alert("Failed to fetch OSRS hiscores.");
+        return;
+      }
+      const textData = await response.text();
+      const lines = textData.split("\n").filter((line) => line.trim() !== "");
+      if (lines.length < 24) {
+        alert("Invalid OSRS username provided.");
+        return;
+      }
+      const parseHiscoresData = (textData) => {
+        let lines = textData.split("\n").filter((line) => line.trim() !== "");
+        if (lines.length < 24) {
+          throw new Error(
+            `Unexpected hiscores data format: expected at least 24 lines but got ${lines.length}`
+          );
+        }
+        lines = lines.slice(0, 24);
+        const skills = [
+          "overall",
+          "attack",
+          "defence",
+          "strength",
+          "hitpoints",
+          "ranged",
+          "prayer",
+          "magic",
+          "cooking",
+          "woodcutting",
+          "fletching",
+          "fishing",
+          "firemaking",
+          "crafting",
+          "smithing",
+          "mining",
+          "herblore",
+          "agility",
+          "thieving",
+          "slayer",
+          "farming",
+          "runecrafting",
+          "hunter",
+          "construction",
+        ];
+        const result = {};
+        const overallParts = lines[0].split(",");
+        result.overallLevel = parseInt(overallParts[1], 10);
+        result.overallXp = parseInt(overallParts[2], 10);
+        for (let i = 1; i < skills.length; i++) {
+          const parts = lines[i].split(",");
+          const fieldName =
+            skills[i] === "runecrafting" ? "runecraftXp" : `${skills[i]}Xp`;
+          result[fieldName] = parseInt(parts[2], 10);
+        }
+        return result;
+      };
+
+      const hiscores = parseHiscoresData(textData);
+      setOsrsData(hiscores);
+      alert("OSRS data updated successfully!");
+    } catch (error) {
+      console.error("Error updating OSRS data:", error);
+      alert("Error updating OSRS data.");
+    }
+  };
+
   return {
     rows,
     setRows: handleRowsChange,
@@ -228,6 +307,7 @@ const useBingoBoardLogic = () => {
     undo,
     redo,
     hasUnsavedChanges,
+    updateOsrsData, // <-- now using ThingProxy
   };
 };
 
