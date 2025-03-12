@@ -1,4 +1,3 @@
-// frontend/src/features/board/components/BingoBoard.jsx
 import React from "react";
 import SaveBoardModal from "./SaveBoardModal";
 import FindBoardModal from "./FindBoardModal";
@@ -66,6 +65,7 @@ const BingoBoard = () => {
             onChange={(e) => setOsrsUsername(e.target.value)}
             className="border rounded p-1"
             placeholder="Enter OSRS username"
+            autoComplete="off" // prevents unwanted browser autofill
           />
           <button
             onClick={updateOsrsData}

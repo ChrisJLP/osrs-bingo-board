@@ -1,4 +1,3 @@
-// frontend/src/hooks/useBingoBoardLogic.js
 import { useState, useEffect } from "react";
 import { useBingoBoard } from "./useBingoBoard";
 
@@ -74,7 +73,7 @@ const useBingoBoardLogic = () => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
-  // New: Client-side version of parseHiscoresData.
+  // Client-side version of parseHiscoresData.
   const parseHiscoresData = (textData) => {
     const lines = textData.split("\n").filter((line) => line.trim() !== "");
     if (lines.length < 24) return null;
@@ -100,7 +99,7 @@ const useBingoBoardLogic = () => {
       "thieving",
       "slayer",
       "farming",
-      "runecrafting", // map to runecraft
+      "runecrafting",
       "hunter",
       "construction",
     ];
@@ -116,14 +115,13 @@ const useBingoBoardLogic = () => {
     return result;
   };
 
-  // New: Function to update cached OSRS data.
+  // Function to update cached OSRS data from hiscores API.
   const updateOsrsData = async () => {
     if (!osrsUsername) {
       alert("Please enter an OSRS username.");
       return;
     }
     try {
-      // Use your backend proxy endpoint instead of the direct hiscores URL.
       const response = await fetch(
         `http://localhost:5001/api/osrs-hiscores?username=${encodeURIComponent(
           osrsUsername
@@ -195,6 +193,7 @@ const useBingoBoardLogic = () => {
       (data.tiles || [])
         .sort((a, b) => a.position - b.position)
         .forEach((tile) => {
+          // Tile positions in your UI are 1-indexed.
           fetchedTiles[tile.position + 1] = {
             content: tile.content,
             target: tile.target,
@@ -202,16 +201,49 @@ const useBingoBoardLogic = () => {
             progress: tile.progress,
             completed: tile.completed,
             imageUrl: tile.imageUrl,
+            mode: tile.mode,
+            skill: tile.skill,
+            currentLevel: tile.currentLevel,
+            goalLevel: tile.goalLevel,
           };
         });
       setTiles(fetchedTiles);
       setShowFindModal(false);
       setUndoStack([]);
       setRedoStack([]);
-      // Optionally, if data.player exists, update OSRS username and cache.
+      // If a player is associated with this board,
+      // set the username and, if no cache exists, use the player's stored xp values.
       if (data.player) {
         setOsrsUsername(data.player.username);
-        // You may wish to cache the hiscores data here as well.
+        const fallbackOsrsData = {
+          overallXp: Number(data.player.overallXp),
+          attackXp: Number(data.player.attackXp),
+          defenceXp: Number(data.player.defenceXp),
+          strengthXp: Number(data.player.strengthXp),
+          hitpointsXp: Number(data.player.hitpointsXp),
+          rangedXp: Number(data.player.rangedXp),
+          prayerXp: Number(data.player.prayerXp),
+          magicXp: Number(data.player.magicXp),
+          cookingXp: Number(data.player.cookingXp),
+          woodcuttingXp: Number(data.player.woodcuttingXp),
+          fletchingXp: Number(data.player.fletchingXp),
+          fishingXp: Number(data.player.fishingXp),
+          firemakingXp: Number(data.player.firemakingXp),
+          craftingXp: Number(data.player.craftingXp),
+          smithingXp: Number(data.player.smithingXp),
+          miningXp: Number(data.player.miningXp),
+          herbloreXp: Number(data.player.herbloreXp),
+          agilityXp: Number(data.player.agilityXp),
+          thievingXp: Number(data.player.thievingXp),
+          slayerXp: Number(data.player.slayerXp),
+          farmingXp: Number(data.player.farmingXp),
+          runecraftXp: Number(data.player.runecraftXp),
+          hunterXp: Number(data.player.hunterXp),
+          constructionXp: Number(data.player.constructionXp),
+        };
+        // Set the OSRS data cache using the player's stored data.
+        setOsrsData(fallbackOsrsData);
+        // Optionally, you could call updateOsrsData() here to refresh data from the hiscores API.
       }
     }
   };
@@ -253,8 +285,8 @@ const useBingoBoardLogic = () => {
     setBoardPassword,
     osrsUsername,
     setOsrsUsername,
-    osrsData, // expose cached OSRS data
-    updateOsrsData, // function to update cached data
+    osrsData,
+    updateOsrsData,
     isExistingBoard,
     showSaveModal,
     setShowSaveModal,

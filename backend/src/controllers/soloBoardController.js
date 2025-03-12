@@ -1,4 +1,3 @@
-// backend/src/controllers/soloBoardController.js
 import bcrypt from "bcrypt";
 import prisma from "../config/db.js";
 
@@ -33,7 +32,7 @@ function parseHiscoresData(textData) {
     "thieving",
     "slayer",
     "farming",
-    "runecrafting", // map to runecraft
+    "runecrafting",
     "hunter",
     "construction",
   ];
@@ -129,18 +128,29 @@ export const createSoloBoard = async (req, res) => {
           create: tiles.map((tile, index) => ({
             position: index,
             content: tile.content,
-            target: tile.target,
+            // For skill tiles, convert goalLevel/currentLevel to numbers
+            target:
+              tile.mode === "skill" ? Number(tile.goalLevel) || 0 : tile.target,
             unit: tile.unit,
-            progress: tile.progress,
+            progress:
+              tile.mode === "skill"
+                ? Number(tile.currentLevel) || 0
+                : tile.progress,
             completed: tile.completed,
             imageUrl: tile.imageUrl,
+            mode: tile.mode,
+            skill: tile.mode === "skill" ? tile.skill : null,
+            currentLevel:
+              tile.mode === "skill" ? Number(tile.currentLevel) || 0 : null,
+            goalLevel:
+              tile.mode === "skill" ? Number(tile.goalLevel) || 0 : null,
           })),
         },
       },
     });
     if (osrsUsername) {
       const hiscores = await getHiscores(req, res, osrsUsername);
-      if (!hiscores) return; // error already sent
+      if (!hiscores) return;
       let playerRecord = await prisma.player.findUnique({
         where: { username: osrsUsername },
       });
@@ -268,11 +278,21 @@ export const updateSoloBoard = async (req, res) => {
           create: tiles.map((tile, index) => ({
             position: index,
             content: tile.content,
-            target: tile.target,
+            target:
+              tile.mode === "skill" ? Number(tile.goalLevel) || 0 : tile.target,
             unit: tile.unit,
-            progress: tile.progress,
+            progress:
+              tile.mode === "skill"
+                ? Number(tile.currentLevel) || 0
+                : tile.progress,
             completed: tile.completed,
             imageUrl: tile.imageUrl,
+            mode: tile.mode,
+            skill: tile.mode === "skill" ? tile.skill : null,
+            currentLevel:
+              tile.mode === "skill" ? Number(tile.currentLevel) || 0 : null,
+            goalLevel:
+              tile.mode === "skill" ? Number(tile.goalLevel) || 0 : null,
           })),
         },
       },

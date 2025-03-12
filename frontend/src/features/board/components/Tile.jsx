@@ -1,4 +1,3 @@
-// frontend/src/features/board/components/Tile.jsx
 import React, { useState, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -52,23 +51,29 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
   };
 
   if (tileData.mode === "skill" && tileData.skill) {
+    const skillBackgroundStyle = tileData.imageUrl
+      ? {
+          backgroundImage: `url(${tileData.imageUrl})`,
+          backgroundSize: "40%",
+          backgroundRepeat: "no-repeat",
+          backgroundPosition: "center",
+        }
+      : {};
     return (
       <div
         ref={setNodeRef}
-        style={style}
+        style={{ ...style, ...skillBackgroundStyle }}
         {...attributes}
         {...listeners}
-        className="relative border border-black bg-white flex items-center justify-center p-14 cursor-pointer"
+        className="relative border border-black flex items-center justify-center p-14 cursor-pointer"
         onClick={(e) => {
           e.stopPropagation();
           setIsEditing(true);
         }}
       >
-        <div className="text-center">
-          <div className="text-xl font-bold">{tileData.skill}</div>
-          <div>
-            {tileData.currentLevel}/{tileData.goalLevel}
-          </div>
+        {/* Progress display at the bottom */}
+        <div className="absolute bottom-2 w-full text-center">
+          {`${tileData.currentLevel}/${tileData.goalLevel}`}
         </div>
         {isEditing && (
           <TileEditor

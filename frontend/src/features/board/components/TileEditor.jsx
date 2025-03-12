@@ -1,10 +1,64 @@
-// frontend/src/features/board/components/TileEditor.jsx
 import React, { useRef, useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import WikiSearch from "./WikiSearch";
 import CustomEntry from "./CustomEntry";
 import CompletionCriteria from "./CompletionCriteria";
 import useTileEditor from "../hooks/useTileEditor";
+
+// Import skill icons from assets
+import AgilityIcon from "../../../assets/skill_icons/Agility_icon.webp";
+import AttackIcon from "../../../assets/skill_icons/Attack_icon.webp";
+import DefenceIcon from "../../../assets/skill_icons/Defence_icon.webp";
+import StrengthIcon from "../../../assets/skill_icons/Strength_icon.webp";
+import HitpointsIcon from "../../../assets/skill_icons/Hitpoints_icon.webp";
+import RangedIcon from "../../../assets/skill_icons/Ranged_icon.png";
+import PrayerIcon from "../../../assets/skill_icons/Prayer_icon.webp";
+import MagicIcon from "../../../assets/skill_icons/Magic_icon.png";
+import CookingIcon from "../../../assets/skill_icons/Cooking_icon.webp";
+import WoodcuttingIcon from "../../../assets/skill_icons/Woodcutting_icon.webp";
+import FletchingIcon from "../../../assets/skill_icons/Fletching_icon.webp";
+import FishingIcon from "../../../assets/skill_icons/Fishing_icon.png";
+import FiremakingIcon from "../../../assets/skill_icons/Firemaking_icon.webp";
+import CraftingIcon from "../../../assets/skill_icons/Crafting_icon.png";
+import SmithingIcon from "../../../assets/skill_icons/Smithing_icon.webp";
+import MiningIcon from "../../../assets/skill_icons/Mining_icon.webp";
+import HerbloreIcon from "../../../assets/skill_icons/Herblore_icon.webp";
+import ThievingIcon from "../../../assets/skill_icons/Thieving_icon.webp";
+import SlayerIcon from "../../../assets/skill_icons/Slayer_icon.png";
+import FarmingIcon from "../../../assets/skill_icons/Farming_icon.webp";
+import RunecraftingIcon from "../../../assets/skill_icons/Runecraft_icon.webp";
+import HunterIcon from "../../../assets/skill_icons/Hunter_icon.webp";
+import ConstructionIcon from "../../../assets/skill_icons/Construction_icon.webp";
+
+const skillIcons = {
+  Attack: AttackIcon,
+  Defence: DefenceIcon,
+  Strength: StrengthIcon,
+  Hitpoints: HitpointsIcon,
+  Ranged: RangedIcon,
+  Prayer: PrayerIcon,
+  Magic: MagicIcon,
+  Cooking: CookingIcon,
+  Woodcutting: WoodcuttingIcon,
+  Fletching: FletchingIcon,
+  Fishing: FishingIcon,
+  Firemaking: FiremakingIcon,
+  Crafting: CraftingIcon,
+  Smithing: SmithingIcon,
+  Mining: MiningIcon,
+  Herblore: HerbloreIcon,
+  Agility: AgilityIcon,
+  Thieving: ThievingIcon,
+  Slayer: SlayerIcon,
+  Farming: FarmingIcon,
+  Runecrafting: RunecraftingIcon,
+  Hunter: HunterIcon,
+  Construction: ConstructionIcon,
+};
+
+const getSkillIcon = (skill) => {
+  return skillIcons[skill] || "";
+};
 
 // Helper function to calculate level from XP (RuneScape formula)
 const xpToLevel = (xp) => {
@@ -93,12 +147,15 @@ const TileEditor = ({
 
   const saveTileData = () => {
     if (mode === "skill") {
-      // Save skill tile data
+      // Save skill tile data with the corresponding skill icon URL
+      // Include a content field so Prisma receives a valid value.
       onSave({
         mode: "skill",
         skill,
         currentLevel,
         goalLevel,
+        imageUrl: getSkillIcon(skill),
+        content: skill,
       });
     } else {
       onSave({ content, ...criteria });

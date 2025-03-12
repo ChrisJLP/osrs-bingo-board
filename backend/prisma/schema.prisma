@@ -21,16 +21,20 @@ model SoloBoard {
 }
 
 model SoloTile {
-  id        String    @id @default(uuid())
-  boardId   String
-  board     SoloBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
-  position  Int
-  content   String    @db.Text
-  imageUrl  String?   @db.VarChar(255)
-  target    Int       @default(0)
-  unit      String    @default("drops")
-  progress  Int       @default(0)
-  completed Boolean   @default(false)
+  id           String    @id @default(uuid())
+  boardId      String
+  board        SoloBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  position     Int
+  content      String    @db.Text
+  imageUrl     String?   @db.VarChar(255)
+  target       Int       @default(0) // For non-skill tiles, a completion target; for skill tiles, the goal level
+  unit         String    @default("drops")
+  progress     Int       @default(0) // For non-skill tiles, progress; for skill tiles, current level
+  completed    Boolean   @default(false)
+  mode         String? // "skill" when this is a skill tile
+  skill        String? // the skill name when mode === "skill"
+  currentLevel Int? // alias for progress when in skill mode
+  goalLevel    Int? // alias for target when in skill mode
 }
 
 model Player {
