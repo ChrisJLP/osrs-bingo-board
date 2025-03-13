@@ -2,17 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
+/* Root styles can remain, but remove forced background-color if you want Tailwind to handle it */
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  /* Set a fixed color scheme */
-  color-scheme: light;
-  color: #213547;
-  background-color: #ffffff;
+  /* color-scheme: light; */
+  /* color: #213547; */          /* Commented out if you want to rely on Tailwind text color */
+  /* background-color: #ffffff; */ /* Remove to allow Tailwind's background to show */
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -20,33 +17,35 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove or comment out the prefers-color-scheme media query */
-
-
-a {
+/* a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
 }
 a:hover {
   color: #535bf2;
-}
+} */
 
+/* body forced to be flex + center is the culprit for "narrow" background.
+   Remove or comment out these lines so your main container can span full width. */
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  justify-content: center;
-  min-width: 320px;
-  min-height: 100vh;
+  /* display: flex; */
+  /* place-items: center; */
+  /* justify-content: center; */
+  /* min-width: 320px; */
+  /* min-height: 100vh; */
+  /* background-color: #ffffff; */ /* Remove so Tailwind's background is visible */
 }
 
+/* h1, button styles, etc. can be removed or customized 
+   because you’re using Tailwind classes for consistent styling. */
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
 
-button {
+/* button {
   border-radius: 8px;
   border: 1px solid transparent;
   padding: 0.6em 1.2em;
@@ -63,17 +62,19 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
-}
+} */
 
+/* Remove the prefers-color-scheme media query that resets colors. */
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    /* color: #213547; */
+    /* background-color: #ffffff; */
   }
-  a:hover {
+  /* a:hover {
     color: #747bff;
   }
   button {
     background-color: #f9f9f9;
-  }
+  } */
 }
+

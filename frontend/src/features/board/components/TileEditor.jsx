@@ -1,4 +1,3 @@
-// TileEditor.jsx
 import React, { useRef, useState, useEffect } from "react";
 import ReactDOM from "react-dom";
 import WikiSearch from "./WikiSearch";
@@ -6,7 +5,7 @@ import CustomEntry from "./CustomEntry";
 import CompletionCriteria from "./CompletionCriteria";
 import useTileEditor from "../hooks/useTileEditor";
 
-// Import skill icons from assets
+// Import skill icons
 import AgilityIcon from "../../../assets/skill_icons/Agility_icon.webp";
 import AttackIcon from "../../../assets/skill_icons/Attack_icon.webp";
 import DefenceIcon from "../../../assets/skill_icons/Defence_icon.webp";
@@ -57,11 +56,9 @@ const skillIcons = {
   Construction: ConstructionIcon,
 };
 
-const getSkillIcon = (skill) => {
-  return skillIcons[skill] || "";
-};
+const getSkillIcon = (skill) => skillIcons[skill] || "";
 
-// Helper function to calculate level from XP (RuneScape formula)
+// RuneScape XP to Level formula
 const xpToLevel = (xp) => {
   let points = 0;
   for (let level = 1; level < 100; level++) {
@@ -74,7 +71,6 @@ const xpToLevel = (xp) => {
   return 99;
 };
 
-// Mapping of displayed skill names to hiscores property keys.
 const skillMapping = {
   Overall: "overallXp",
   Attack: "attackXp",
@@ -128,18 +124,14 @@ const TileEditor = ({
     onCancel();
   });
 
-  // Additional state for Skill mode
   const [skill, setSkill] = useState(initialData.skill || "");
   const [currentXp, setCurrentXp] = useState(initialData.currentXp || "");
   const [currentLevel, setCurrentLevel] = useState(
     initialData.currentLevel || ""
   );
   const [goalLevel, setGoalLevel] = useState(initialData.goalLevel || "");
-
-  // New state for wiki image URL
   const [wikiImageUrl, setWikiImageUrl] = useState(initialData.imageUrl || "");
 
-  // When mode is "skill" and a skill is selected, auto-calculate level if osrsData exists.
   useEffect(() => {
     if (mode === "skill" && osrsData && skill) {
       const xpValue = osrsData[skillMapping[skill]];
@@ -151,7 +143,6 @@ const TileEditor = ({
 
   const saveTileData = () => {
     if (mode === "skill") {
-      // Save skill tile data with the corresponding skill icon URL
       onSave({
         mode: "skill",
         skill,
@@ -161,10 +152,9 @@ const TileEditor = ({
         content: skill,
       });
     } else if (mode === "wiki") {
-      // Save wiki tile data with the selected image URL
       onSave({
         mode: "wiki",
-        content, // the title of the wiki item
+        content,
         imageUrl: wikiImageUrl,
         ...criteria,
       });
@@ -178,43 +168,47 @@ const TileEditor = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black opacity-50"
+        className="absolute inset-0 bg-black bg-opacity-50"
         onClick={onCancel}
       ></div>
+
       {/* Modal content */}
       <div
         ref={editorRef}
-        className="relative bg-white p-4 rounded shadow-lg w-96"
+        className="relative bg-white p-4 rounded-lg shadow-md w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Tab buttons */}
+        {/* Mode Tabs */}
         <div className="mb-4 flex space-x-2">
           <button
             onClick={() => handleModeChange("wiki")}
             disabled={mode === "wiki"}
+            className="px-3 py-1 rounded-lg bg-[#D4AF37] text-[#362511] hover:bg-[#C59C2A] transition disabled:opacity-50"
           >
             Wiki Search
           </button>
           <button
             onClick={() => handleModeChange("custom")}
             disabled={mode === "custom"}
+            className="px-3 py-1 rounded-lg bg-[#D4AF37] text-[#362511] hover:bg-[#C59C2A] transition disabled:opacity-50"
           >
             Custom Entry
           </button>
           <button
             onClick={() => handleModeChange("skill")}
             disabled={mode === "skill"}
+            className="px-3 py-1 rounded-lg bg-[#D4AF37] text-[#362511] hover:bg-[#C59C2A] transition disabled:opacity-50"
           >
             Skills
           </button>
         </div>
-        {/* Content based on mode */}
-        <div className="mb-4">
+
+        {/* Editor Body */}
+        <div className="mb-4 text-[#362511]">
           {mode === "wiki" && (
             <>
               <WikiSearch
                 onSelect={(result) => {
-                  // Update both the content (title) and the wiki image URL
                   handleContentChange(result.title);
                   setWikiImageUrl(result.imageUrl);
                 }}
@@ -224,9 +218,11 @@ const TileEditor = ({
               </div>
             </>
           )}
+
           {mode === "custom" && (
             <CustomEntry value={content} onChange={handleContentChange} />
           )}
+
           {mode === "skill" && (
             <div className="skill-editor">
               <div className="mb-2">
@@ -248,6 +244,7 @@ const TileEditor = ({
                       setCurrentLevel("");
                     }
                   }}
+                  className="border border-[#8B5A2B] rounded-lg p-1 w-full"
                 >
                   <option value="">--Select Skill--</option>
                   {skillsList.map((s) => (
@@ -257,11 +254,10 @@ const TileEditor = ({
                   ))}
                 </select>
               </div>
+
               {osrsData ? (
                 <div className="mb-2">
-                  <span>
-                    Current Level: {currentLevel ? currentLevel : "N/A"}
-                  </span>
+                  <span>Current Level: {currentLevel || "N/A"}</span>
                 </div>
               ) : (
                 <div className="mb-2">
@@ -274,41 +270,44 @@ const TileEditor = ({
                       setCurrentXp(e.target.value);
                       setCurrentLevel(xpToLevel(xpVal));
                     }}
-                    className="border rounded p-1 w-full"
+                    className="border border-[#8B5A2B] rounded-lg p-1 w-full"
                   />
-                  <div>
-                    Computed Level: {currentLevel ? currentLevel : "N/A"}
-                  </div>
+                  <div>Computed Level: {currentLevel || "N/A"}</div>
                 </div>
               )}
+
               <div className="mb-2">
                 <label className="block mb-1">Goal Level:</label>
                 <input
                   type="number"
                   value={goalLevel}
                   onChange={(e) => setGoalLevel(e.target.value)}
-                  className="border rounded p-1 w-full"
+                  className="border border-[#8B5A2B] rounded-lg p-1 w-full"
                 />
               </div>
             </div>
           )}
         </div>
-        {/* Buttons */}
+
+        {/* Footer Buttons */}
         <div className="flex justify-between">
           <button
             onClick={handleReset}
-            className="bg-red-500 text-white p-2 rounded"
+            className="bg-red-500 text-white p-2 rounded-lg hover:scale-105 transition"
           >
             Reset
           </button>
           <div className="flex space-x-2">
             <button
               onClick={saveTileData}
-              className="bg-blue-500 text-white p-2 rounded"
+              className="bg-[#D4AF37] text-[#362511] p-2 rounded-lg transition hover:bg-[#C59C2A] hover:scale-105"
             >
               Save
             </button>
-            <button onClick={onCancel} className="bg-gray-300 p-2 rounded">
+            <button
+              onClick={onCancel}
+              className="bg-gray-300 text-[#362511] p-2 rounded-lg hover:scale-105 transition"
+            >
               Cancel
             </button>
           </div>

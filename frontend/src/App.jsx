@@ -3,9 +3,11 @@ import NavBar from "./components/NavBar";
 
 function App() {
   return (
-    <div className="p-5">
+    <div className="bg-[#FDF6E3] min-h-screen w-full">
       <NavBar />
-      <BingoBoard />
+      <div className="max-w-5xl mx-auto p-4">
+        <BingoBoard />
+      </div>
     </div>
   );
 }

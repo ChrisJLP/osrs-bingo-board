@@ -1,4 +1,3 @@
-// frontend/src/features/board/components/BoardGrid.jsx
 import React, { useEffect } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, rectSortingStrategy } from "@dnd-kit/sortable";
@@ -25,30 +24,24 @@ const BoardGrid = ({
   const currentOrder =
     order && order.length === rows * columns
       ? order
-      : Array.from({ length: rows * columns }, (_, index) => index + 1);
+      : Array.from({ length: rows * columns }, (_, i) => i + 1);
 
+  // If row/col changes, reset or create an updated order
   useEffect(() => {
-    const newOrder = Array.from(
-      { length: rows * columns },
-      (_, index) => index + 1
-    );
-    if (!order || order.length !== newOrder.length) {
-      onOrderChange(newOrder);
+    const neededOrder = Array.from({ length: rows * columns }, (_, i) => i + 1);
+    if (!order || order.length !== neededOrder.length) {
+      onOrderChange(neededOrder);
     }
   }, [rows, columns, order, onOrderChange]);
 
+  // useBoardGridDnD is presumably your custom DnD logic hook
   const { sensors, handleDragEnd } = useBoardGridDnD(
     currentOrder,
     onOrderChange
   );
 
-  const gridStyle = {
-    gridTemplateRows: `repeat(${rows}, 1fr)`,
-    gridTemplateColumns: `repeat(${columns}, 1fr)`,
-  };
-
   return (
-    <div className="border-2 border-gray-400 bg-gray-100 p-2">
+    <div className="md:w-[700px] w-[400px] border-2 border-[#8B5A2B] bg-[#FDF6E3] p-2 rounded-lg shadow-md">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -58,20 +51,28 @@ const BoardGrid = ({
           items={currentOrder.map(String)}
           strategy={rectSortingStrategy}
         >
-          <div className="grid gap-1" style={gridStyle}>
+          <div
+            className="grid gap-2"
+            style={{
+              gridTemplateColumns: `repeat(${columns}, 1fr)`,
+            }}
+          >
             {currentOrder.map((tileId) => (
-              <Tile
-                key={tileId}
-                id={tileId}
-                data={
-                  tiles[tileId] || {
-                    ...defaultTileData,
-                    content: tileId.toString(),
-                  }
-                }
-                onTileUpdate={onTileUpdate}
-                osrsData={osrsData}
-              />
+              <div key={tileId} className="relative w-full h-0 pb-[100%]">
+                <div className="absolute top-0 left-0 w-full h-full">
+                  <Tile
+                    id={tileId}
+                    data={
+                      tiles[tileId] || {
+                        ...defaultTileData,
+                        content: tileId.toString(),
+                      }
+                    }
+                    onTileUpdate={onTileUpdate}
+                    osrsData={osrsData}
+                  />
+                </div>
+              </div>
             ))}
           </div>
         </SortableContext>
