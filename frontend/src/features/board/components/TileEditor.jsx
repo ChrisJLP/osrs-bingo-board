@@ -58,6 +58,7 @@ const skillIcons = {
 
 const getSkillIcon = (skill) => skillIcons[skill] || "";
 
+// RuneScape XP to Level formula
 const xpToLevel = (xp) => {
   let points = 0;
   for (let level = 1; level < 100; level++) {
@@ -81,6 +82,7 @@ const TileEditor = ({
 }) => {
   const editorRef = useRef(null);
 
+  // Pull from the custom hook that manages the tile data
   const {
     content,
     criteria,
@@ -96,15 +98,20 @@ const TileEditor = ({
     onCancel();
   });
 
+  // Additional local states
   const [skill, setSkill] = useState(initialData.skill || "");
   const [currentXp, setCurrentXp] = useState(initialData.currentXp || "");
   const [currentLevel, setCurrentLevel] = useState(
     initialData.currentLevel || ""
   );
   const [goalLevel, setGoalLevel] = useState(initialData.goalLevel || "");
-  const [wikiImageUrl, setWikiImageUrl] = useState(initialData.imageUrl || "");
+
+  // For wiki searching
+  const [selectedWikiItem, setSelectedWikiItem] = useState(null);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    // If in skill mode and we have OSRS data for that skill, update the current level
     if (mode === "skill" && osrsData && skill) {
       const xpValue = osrsData[`${skill.toLowerCase()}Xp`];
       if (xpValue !== undefined) {
@@ -113,8 +120,26 @@ const TileEditor = ({
     }
   }, [mode, osrsData, skill]);
 
+  // If the user changes modes, clear any leftover wiki selection/error
+  useEffect(() => {
+    if (mode !== "wiki") {
+      setSelectedWikiItem(null);
+      setError("");
+    }
+  }, [mode]);
+
+  // When a user selects a result from the WikiSearch
+  const handleWikiSelect = (result) => {
+    setSelectedWikiItem(result);
+    setError("");
+    handleContentChange(result.title);
+  };
+
   const saveTileData = () => {
+    setError(""); // Clear any previous error
+
     if (mode === "skill") {
+      // Save as skill tile
       onSave({
         mode: "skill",
         skill,
@@ -124,18 +149,26 @@ const TileEditor = ({
         content: skill,
       });
     } else if (mode === "wiki") {
+      // Must have a valid selection from Wiki
+      if (!selectedWikiItem) {
+        setError("Not a valid item");
+        return;
+      }
+      // If valid, save as wiki tile
       onSave({
         mode: "wiki",
         content,
-        imageUrl: wikiImageUrl,
+        imageUrl: selectedWikiItem.imageUrl || "",
         ...criteria,
       });
     } else {
+      // Custom tile
       onSave({ mode: "custom", content, ...criteria });
     }
     onCancel();
   };
 
+  // Render the modal
   const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -179,14 +212,10 @@ const TileEditor = ({
         <div className="mb-4 text-[#3b2f25]">
           {mode === "wiki" && (
             <>
-              <WikiSearch
-                onSelect={(result) => {
-                  handleContentChange(result.title);
-                  setWikiImageUrl(result.imageUrl);
-                }}
-              />
+              <WikiSearch onSelect={handleWikiSelect} />
               <div className="mt-2">
-                <strong>Currently selected:</strong> {content || "None"}
+                <strong>Currently selected:</strong>{" "}
+                {selectedWikiItem ? selectedWikiItem.title : "None"}
               </div>
             </>
           )}
@@ -261,6 +290,9 @@ const TileEditor = ({
             </div>
           )}
         </div>
+
+        {/* Error Display (if any) */}
+        {error && <p className="text-red-500 mb-4">{error}</p>}
 
         {/* Footer Buttons */}
         <div className="flex justify-between">
