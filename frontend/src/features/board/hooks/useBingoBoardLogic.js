@@ -44,7 +44,7 @@ const useBingoBoardLogic = () => {
   // API interactions
   const { error, fetchBoard, saveBoard, updateBoard } = useBingoBoard();
 
-  // Undo/Redo
+  // Undo/Redo stacks
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
 
@@ -55,10 +55,9 @@ const useBingoBoardLogic = () => {
       window.removeEventListener("openFindBoardModal", openFindModal);
   }, []);
 
-  // ------------------------------------------------
+  // -----------------------------
   // Undo/Redo logic
-  // ------------------------------------------------
-
+  // -----------------------------
   const saveCurrentState = () => {
     const snapshot = { rows, columns, tiles, order };
     setUndoStack((prev) => [...prev, snapshot]);
@@ -111,9 +110,9 @@ const useBingoBoardLogic = () => {
 
   const hasUnsavedChanges = undoStack.length > 0;
 
-  // ------------------------------------------------
-  // Find board
-  // ------------------------------------------------
+  // -----------------------------
+  // Find board logic
+  // -----------------------------
   const handleConfirmFind = async () => {
     const data = await fetchBoard(findBoardName);
     if (data) {
@@ -145,7 +144,6 @@ const useBingoBoardLogic = () => {
       setShowFindModal(false);
       setUndoStack([]);
 
-      // If there's a player object, set OSRS data
       if (data.player) {
         setOsrsUsername(data.player.username);
         const fallbackOsrsData = {
@@ -179,9 +177,9 @@ const useBingoBoardLogic = () => {
     }
   };
 
-  // ------------------------------------------------
-  // Save board
-  // ------------------------------------------------
+  // -----------------------------
+  // Save board logic
+  // -----------------------------
   const confirmSave = async () => {
     const boardDataToSave = {
       name: boardName,
@@ -221,9 +219,9 @@ const useBingoBoardLogic = () => {
     }
   };
 
-  // ------------------------------------------------
-  // OSRS Data Update
-  // ------------------------------------------------
+  // -----------------------------
+  // OSRS Data Update logic
+  // -----------------------------
   const updateOsrsData = async (usernameParam) => {
     const usernameToUse = usernameParam || osrsUsername;
     if (!usernameToUse) {
@@ -287,7 +285,6 @@ const useBingoBoardLogic = () => {
         const overallParts = lines[0].split(",");
         result.overallLevel = parseInt(overallParts[1], 10);
         result.overallXp = parseInt(overallParts[2], 10);
-
         for (let i = 1; i < skills.length; i++) {
           const parts = lines[i].split(",");
           const fieldName =
@@ -308,11 +305,11 @@ const useBingoBoardLogic = () => {
     }
   };
 
-  // ------------------------------------------------
-  // Create Template Board
-  // ------------------------------------------------
+  // -----------------------------
+  // Create Template Board logic
+  // -----------------------------
   const createTemplateBoard = async () => {
-    // Clone current board tiles with progress reset and items incomplete
+    // Clone current board tiles with progress reset and incomplete status.
     const clonedTiles = {};
     order.forEach((tileId) => {
       const tile = tiles[tileId] || {
@@ -347,40 +344,51 @@ const useBingoBoardLogic = () => {
 
     const response = await saveBoard(newBoardData);
     if (!response) {
-      console.log("Failed to create template board. Name might be taken.");
-      throw new Error("Template board creation failed.");
+      console.log(
+        "Failed to create template board. Board name might be taken."
+      );
+      throw new Error(
+        "Failed to create template board. Board name might already be taken."
+      );
     }
 
-    console.log("Template board created successfully!");
+    // Board creation succeeded; update state so the new board is displayed.
     setUndoStack([]);
-    // Switch to the newly created board
     setBoardName(templateBoardName);
     setBoardTitle(templateBoardTitle);
     setBoardPassword(templateBoardPassword);
     setOsrsUsername(templateOsrsUsername);
     setTiles(clonedTiles);
     setOrder(order);
+
+    let updateMessage = "";
     if (templateOsrsUsername) {
-      // Attempt to update OSRS data with new username
-      await updateOsrsData(templateOsrsUsername).catch((err) => {
-        console.error("Error updating OSRS data for template user:", err);
-      });
+      try {
+        await updateOsrsData(templateOsrsUsername);
+        updateMessage = `New board created with hiscores data from ${templateOsrsUsername}`;
+      } catch (err) {
+        console.error("Error updating hiscores data for template board:", err);
+        updateMessage = "New board created, but failed to fetch hiscores data.";
+      }
     } else {
       setOsrsData(null);
+      updateMessage = "New board created.";
     }
+
     setIsExistingBoard(false);
     setShowTemplateModal(false);
-
     // Reset template modal fields
     setTemplateBoardName("");
     setTemplateBoardTitle("");
     setTemplateBoardPassword("");
     setTemplateOsrsUsername("");
+
+    return updateMessage;
   };
 
-  // ------------------------------------------------
-  // Return all logic & state
-  // ------------------------------------------------
+  // -----------------------------
+  // Return logic & state
+  // -----------------------------
   return {
     rows,
     setRows: handleRowsChange,

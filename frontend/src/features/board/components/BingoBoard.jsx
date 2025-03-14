@@ -6,6 +6,7 @@ import BoardControls from "./BoardControls";
 import BoardGrid from "./BoardGrid";
 import useBingoBoardLogic from "../hooks/useBingoBoardLogic";
 import LoadingSpinner from "../components/LoadingSpinner";
+import SuccessPopup from "../components/SuccessPopup";
 
 const BingoBoard = () => {
   const {
@@ -53,9 +54,16 @@ const BingoBoard = () => {
     createTemplateBoard,
   } = useBingoBoardLogic();
 
-  // New state for handling OSRS hiscores update loading and message
+  // Loading states for different API events:
   const [loadingOSRS, setLoadingOSRS] = useState(false);
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
+
+  // State for OSRS hiscores update message
   const [osrsUpdateMessage, setOsrsUpdateMessage] = useState("");
+
+  // Success popup state (for board saves/updates/template creation)
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -80,12 +88,10 @@ const BingoBoard = () => {
     setShowTemplateModal(true);
   };
 
-  // Modified update handler for OSRS hiscores
   const handleUpdateOSRS = async () => {
     setLoadingOSRS(true);
     let success = false;
     try {
-      // Assume updateOsrsData returns a truthy value on success or throws on failure.
       await updateOsrsData();
       success = true;
     } catch (err) {
@@ -102,22 +108,46 @@ const BingoBoard = () => {
     }, 7000);
   };
 
-  // Modified save and template handlers to show loading spinners
   const handleConfirmSave = async () => {
-    // For saving board
-    await confirmSave();
+    setLoadingSave(true);
+    try {
+      await confirmSave();
+      setSuccessMessage(
+        isExistingBoard
+          ? "Board updated successfully!"
+          : "Board saved successfully!"
+      );
+    } catch (err) {
+      console.error(err);
+    }
+    setLoadingSave(false);
   };
 
   const handleConfirmTemplate = async () => {
-    await createTemplateBoard();
+    setLoadingTemplate(true);
+    try {
+      const message = await createTemplateBoard();
+      setSuccessMessage(message);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoadingTemplate(false);
   };
 
   return (
     <div className="flex flex-col items-center p-4 text-[#362511]">
+      {/* Success Popup for board saves/updates/templates */}
+      {successMessage && (
+        <SuccessPopup
+          message={successMessage}
+          onClose={() => setSuccessMessage("")}
+        />
+      )}
+
       {/* Title */}
       <h1 className="text-2xl font-bold text-center mb-4">{boardTitle}</h1>
 
-      {/* OSRS Username / Undo/Redo Row */}
+      {/* OSRS Username & Undo/Redo Row */}
       <div className="w-full max-w-[700px] mx-auto flex flex-col mb-4">
         <div className="flex items-end justify-between">
           <div className="flex flex-col">
@@ -157,13 +187,13 @@ const BingoBoard = () => {
           <div className="flex space-x-2">
             <button
               onClick={undo}
-              className="bg-[#bfb3a7] text-[#362511] px-3 py-1 text-base leading-tight rounded-lg transition hover:scale-105"
+              className="bg-[#bfb3a7] text-[#362511] px-3 py-1 rounded-lg transition hover:scale-105"
             >
               Undo
             </button>
             <button
               onClick={redo}
-              className="bg-[#bfb3a7] text-[#362511] px-3 py-1 text-base leading-tight rounded-lg transition hover:scale-105"
+              className="bg-[#bfb3a7] text-[#362511] px-3 py-1 rounded-lg transition hover:scale-105"
             >
               Redo
             </button>
@@ -202,12 +232,14 @@ const BingoBoard = () => {
         >
           {isExistingBoard ? "Update board" : "Save Board"}
         </button>
+        {loadingSave && <LoadingSpinner size="w-6 h-6" />}
         <button
           onClick={handleTemplateClick}
           className="bg-[#D4AF37] text-[#362511] px-4 py-2 rounded-lg transition hover:bg-[#C59C2A] hover:scale-105"
         >
           Use board as a template
         </button>
+        {loadingTemplate && <LoadingSpinner size="w-6 h-6" />}
       </div>
 
       {/* Modals */}
@@ -223,7 +255,7 @@ const BingoBoard = () => {
         setBoardPassword={setBoardPassword}
         errorMessage={error}
         isExistingBoard={isExistingBoard}
-        loading={loadingOSRS} // You can pass loading here if needed
+        loading={loadingSave}
       />
       <FindBoardModal
         isOpen={showFindModal}
@@ -246,7 +278,7 @@ const BingoBoard = () => {
         osrsUsername={templateOsrsUsername}
         setOsrsUsername={setTemplateOsrsUsername}
         errorMessage={error}
-        loading={false} // Adjust as needed if you want a loading spinner for template actions
+        loading={loadingTemplate}
       />
     </div>
   );
