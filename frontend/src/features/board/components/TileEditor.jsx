@@ -78,7 +78,7 @@ const TileEditor = ({
   onSave,
   onCancel,
   osrsData,
-  defaultMode, // NEW: mode passed from Tile.jsx
+  defaultMode,
 }) => {
   const editorRef = useRef(null);
 
@@ -109,10 +109,11 @@ const TileEditor = ({
   );
   const [goalLevel, setGoalLevel] = useState(initialData.goalLevel || "");
 
-  // For wiki searching and error validation
+  // For wiki searching
   const [selectedWikiItem, setSelectedWikiItem] = useState(null);
   const [error, setError] = useState("");
 
+  // When the mode is "skill" and we have OSRS data, update currentLevel if possible
   useEffect(() => {
     if (mode === "skill" && osrsData && skill) {
       const xpValue = osrsData[`${skill.toLowerCase()}Xp`];
@@ -122,12 +123,22 @@ const TileEditor = ({
     }
   }, [mode, osrsData, skill]);
 
+  // If the mode changes away from "wiki," reset the selectedWikiItem
+  // If it changes to "wiki," try to populate from the tile's existing data
   useEffect(() => {
-    if (mode !== "wiki") {
+    if (mode === "wiki") {
+      // If this tile was already saved with wiki content/imageUrl, show it as selected
+      if (initialData && initialData.content && initialData.imageUrl) {
+        setSelectedWikiItem({
+          title: initialData.content,
+          imageUrl: initialData.imageUrl,
+        });
+      }
+    } else {
       setSelectedWikiItem(null);
       setError("");
     }
-  }, [mode]);
+  }, [mode, initialData]);
 
   const handleWikiSelect = (result) => {
     setSelectedWikiItem(result);
@@ -137,6 +148,7 @@ const TileEditor = ({
 
   const saveTileData = () => {
     setError("");
+
     if (mode === "skill") {
       onSave({
         mode: "skill",
@@ -163,7 +175,6 @@ const TileEditor = ({
     onCancel();
   };
 
-  // Helper for active tab styling
   const getTabClasses = (tabMode) => {
     const isActive = mode === tabMode;
     return [
@@ -185,6 +196,7 @@ const TileEditor = ({
         className="absolute inset-0 bg-black bg-opacity-50"
         onClick={onCancel}
       ></div>
+
       <div
         ref={editorRef}
         className="relative bg-[#f0e8da] p-4 rounded-lg shadow-md w-full max-w-md mx-4"
@@ -223,9 +235,11 @@ const TileEditor = ({
               </div>
             </>
           )}
+
           {mode === "custom" && (
             <CustomEntry value={content} onChange={handleContentChange} />
           )}
+
           {mode === "skill" && (
             <div className="skill-editor">
               <div className="mb-2">
@@ -279,6 +293,7 @@ const TileEditor = ({
                   <div>Computed Level: {currentLevel || "N/A"}</div>
                 </div>
               )}
+
               <div className="mb-2">
                 <label className="block mb-1">Goal Level:</label>
                 <input
@@ -292,6 +307,7 @@ const TileEditor = ({
           )}
         </div>
 
+        {/* Error Display (if any) */}
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
         {/* Footer Buttons */}
