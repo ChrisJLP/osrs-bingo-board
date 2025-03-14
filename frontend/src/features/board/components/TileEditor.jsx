@@ -113,7 +113,6 @@ const TileEditor = ({
   const [selectedWikiItem, setSelectedWikiItem] = useState(null);
   const [error, setError] = useState("");
 
-  // When the mode is "skill" and we have OSRS data, update currentLevel if possible
   useEffect(() => {
     if (mode === "skill" && osrsData && skill) {
       const xpValue = osrsData[`${skill.toLowerCase()}Xp`];
@@ -123,11 +122,8 @@ const TileEditor = ({
     }
   }, [mode, osrsData, skill]);
 
-  // If the mode changes away from "wiki," reset the selectedWikiItem
-  // If it changes to "wiki," try to populate from the tile's existing data
   useEffect(() => {
     if (mode === "wiki") {
-      // If this tile was already saved with wiki content/imageUrl, show it as selected
       if (initialData && initialData.content && initialData.imageUrl) {
         setSelectedWikiItem({
           title: initialData.content,
@@ -148,7 +144,6 @@ const TileEditor = ({
 
   const saveTileData = () => {
     setError("");
-
     if (mode === "skill") {
       onSave({
         mode: "skill",
@@ -196,7 +191,6 @@ const TileEditor = ({
         className="absolute inset-0 bg-black bg-opacity-50"
         onClick={onCancel}
       ></div>
-
       <div
         ref={editorRef}
         className="relative bg-[#f0e8da] p-4 rounded-lg shadow-md w-full max-w-md mx-4"
@@ -264,7 +258,7 @@ const TileEditor = ({
                   }}
                   className="border border-[#8b6d48] rounded-lg p-1 w-full text-[#3b2f25]"
                 >
-                  <option value="">--Select Skill--</option>
+                  <option value="">Choose a skill</option>
                   {skillsList.map((s) => (
                     <option key={s} value={s}>
                       {s}
