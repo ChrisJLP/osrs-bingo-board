@@ -28,7 +28,7 @@ const useBingoBoardLogic = () => {
   const [showFindModal, setShowFindModal] = useState(false);
   const [findBoardName, setFindBoardName] = useState("");
 
-  // New state for template board modal
+  // Template board modal
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [templateBoardName, setTemplateBoardName] = useState("");
   const [templateBoardTitle, setTemplateBoardTitle] = useState("");
@@ -44,7 +44,7 @@ const useBingoBoardLogic = () => {
   // API interactions
   const { error, fetchBoard, saveBoard, updateBoard } = useBingoBoard();
 
-  // Undo/Redo stacks
+  // Undo/Redo
   const [undoStack, setUndoStack] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
 
@@ -54,6 +54,10 @@ const useBingoBoardLogic = () => {
     return () =>
       window.removeEventListener("openFindBoardModal", openFindModal);
   }, []);
+
+  // ------------------------------------------------
+  // Undo/Redo logic
+  // ------------------------------------------------
 
   const saveCurrentState = () => {
     const snapshot = { rows, columns, tiles, order };
@@ -81,6 +85,35 @@ const useBingoBoardLogic = () => {
     setTiles((prev) => ({ ...prev, [tileId]: newData }));
   };
 
+  const undo = () => {
+    if (undoStack.length === 0) return;
+    const lastSnapshot = undoStack[undoStack.length - 1];
+    setUndoStack((prev) => prev.slice(0, prev.length - 1));
+    const currentSnapshot = { rows, columns, tiles, order };
+    setRedoStack((prev) => [...prev, currentSnapshot]);
+    setRows(lastSnapshot.rows);
+    setColumns(lastSnapshot.columns);
+    setTiles(lastSnapshot.tiles);
+    setOrder(lastSnapshot.order);
+  };
+
+  const redo = () => {
+    if (redoStack.length === 0) return;
+    const lastSnapshot = redoStack[redoStack.length - 1];
+    setRedoStack((prev) => prev.slice(0, prev.length - 1));
+    const currentSnapshot = { rows, columns, tiles, order };
+    setUndoStack((prev) => [...prev, currentSnapshot]);
+    setRows(lastSnapshot.rows);
+    setColumns(lastSnapshot.columns);
+    setTiles(lastSnapshot.tiles);
+    setOrder(lastSnapshot.order);
+  };
+
+  const hasUnsavedChanges = undoStack.length > 0;
+
+  // ------------------------------------------------
+  // Find board
+  // ------------------------------------------------
   const handleConfirmFind = async () => {
     const data = await fetchBoard(findBoardName);
     if (data) {
@@ -89,6 +122,7 @@ const useBingoBoardLogic = () => {
       setRows(data.rows || 5);
       setColumns(data.columns || 5);
       setBoardTitle(data.title || "Bingo Board");
+
       const fetchedTiles = {};
       (data.tiles || [])
         .sort((a, b) => a.position - b.position)
@@ -110,6 +144,8 @@ const useBingoBoardLogic = () => {
       setTiles(fetchedTiles);
       setShowFindModal(false);
       setUndoStack([]);
+
+      // If there's a player object, set OSRS data
       if (data.player) {
         setOsrsUsername(data.player.username);
         const fallbackOsrsData = {
@@ -143,32 +179,9 @@ const useBingoBoardLogic = () => {
     }
   };
 
-  const undo = () => {
-    if (undoStack.length === 0) return;
-    const lastSnapshot = undoStack[undoStack.length - 1];
-    setUndoStack((prev) => prev.slice(0, prev.length - 1));
-    const currentSnapshot = { rows, columns, tiles, order };
-    setRedoStack((prev) => [...prev, currentSnapshot]);
-    setRows(lastSnapshot.rows);
-    setColumns(lastSnapshot.columns);
-    setTiles(lastSnapshot.tiles);
-    setOrder(lastSnapshot.order);
-  };
-
-  const redo = () => {
-    if (redoStack.length === 0) return;
-    const lastSnapshot = redoStack[redoStack.length - 1];
-    setRedoStack((prev) => prev.slice(0, prev.length - 1));
-    const currentSnapshot = { rows, columns, tiles, order };
-    setUndoStack((prev) => [...prev, currentSnapshot]);
-    setRows(lastSnapshot.rows);
-    setColumns(lastSnapshot.columns);
-    setTiles(lastSnapshot.tiles);
-    setOrder(lastSnapshot.order);
-  };
-
-  const hasUnsavedChanges = undoStack.length > 0;
-
+  // ------------------------------------------------
+  // Save board
+  // ------------------------------------------------
   const confirmSave = async () => {
     const boardDataToSave = {
       name: boardName,
@@ -188,26 +201,34 @@ const useBingoBoardLogic = () => {
     if (isExistingBoard) {
       response = await updateBoard(boardDataToSave);
       if (response) {
-        alert("Board updated successfully!");
+        console.log("Board updated successfully!");
         setShowSaveModal(false);
         setUndoStack([]);
+      } else {
+        console.log("Board update failed or returned no response.");
+        throw new Error("Board update failed.");
       }
     } else {
       response = await saveBoard(boardDataToSave);
       if (response) {
-        alert("Board saved successfully!");
+        console.log("Board saved successfully!");
         setShowSaveModal(false);
         setUndoStack([]);
+      } else {
+        console.log("Board save failed or returned no response.");
+        throw new Error("Board save failed.");
       }
     }
   };
 
-  // Modified updateOsrsData accepts an optional username parameter.
+  // ------------------------------------------------
+  // OSRS Data Update
+  // ------------------------------------------------
   const updateOsrsData = async (usernameParam) => {
     const usernameToUse = usernameParam || osrsUsername;
     if (!usernameToUse) {
-      alert("Please enter an OSRS username first.");
-      return;
+      console.log("No OSRS username provided.");
+      throw new Error("No OSRS username provided.");
     }
     try {
       const hiscoreUrl = `https://secure.runescape.com/m=hiscore_oldschool/index_lite.ws?player=${encodeURIComponent(
@@ -215,16 +236,19 @@ const useBingoBoardLogic = () => {
       )}`;
       const proxyUrl = `https://thingproxy.freeboard.io/fetch/${hiscoreUrl}`;
       const response = await fetch(proxyUrl);
+
       if (!response.ok) {
-        alert("Failed to fetch OSRS hiscores.");
-        return;
+        console.log("Failed to fetch OSRS hiscores from server.");
+        throw new Error("Failed to fetch OSRS hiscores.");
       }
+
       const textData = await response.text();
       const lines = textData.split("\n").filter((line) => line.trim() !== "");
       if (lines.length < 24) {
-        alert("Invalid OSRS username provided.");
-        return;
+        console.log("Invalid OSRS username or data format.");
+        throw new Error("Invalid OSRS username provided.");
       }
+
       const parseHiscoresData = (textData) => {
         let lines = textData.split("\n").filter((line) => line.trim() !== "");
         if (lines.length < 24) {
@@ -263,6 +287,7 @@ const useBingoBoardLogic = () => {
         const overallParts = lines[0].split(",");
         result.overallLevel = parseInt(overallParts[1], 10);
         result.overallXp = parseInt(overallParts[2], 10);
+
         for (let i = 1; i < skills.length; i++) {
           const parts = lines[i].split(",");
           const fieldName =
@@ -274,15 +299,20 @@ const useBingoBoardLogic = () => {
 
       const hiscores = parseHiscoresData(textData);
       setOsrsData(hiscores);
-      alert("OSRS data updated successfully!");
+
+      console.log("OSRS data updated successfully!");
+      return true;
     } catch (error) {
       console.error("Error updating OSRS data:", error);
-      alert("Error updating OSRS data.");
+      throw error;
     }
   };
 
+  // ------------------------------------------------
+  // Create Template Board
+  // ------------------------------------------------
   const createTemplateBoard = async () => {
-    // Clone current board tiles with progress reset and items marked incomplete.
+    // Clone current board tiles with progress reset and items incomplete
     const clonedTiles = {};
     order.forEach((tileId) => {
       const tile = tiles[tileId] || {
@@ -294,7 +324,7 @@ const useBingoBoardLogic = () => {
           ...tile,
           progress: 0,
           completed: false,
-          currentLevel: templateOsrsUsername ? 0 : 1, // new OSRS user: start at 0 so hiscores update later
+          currentLevel: templateOsrsUsername ? 0 : 1,
         };
       } else {
         clonedTiles[tileId] = {
@@ -304,47 +334,53 @@ const useBingoBoardLogic = () => {
         };
       }
     });
+
     const newBoardData = {
       name: templateBoardName,
       password: templateBoardPassword,
-      title: templateBoardTitle, // use the new title input from the modal
+      title: templateBoardTitle,
       osrsUsername: templateOsrsUsername,
       rows,
       columns,
-      // Convert clonedTiles object to an array using order.
       tiles: order.map((tileId) => clonedTiles[tileId]),
     };
+
     const response = await saveBoard(newBoardData);
-    if (response) {
-      alert("Template board created successfully!");
-      setUndoStack([]);
-      // Update state so the new board displays immediately.
-      setBoardName(templateBoardName);
-      setBoardTitle(templateBoardTitle);
-      setBoardPassword(templateBoardPassword);
-      setOsrsUsername(templateOsrsUsername);
-      setTiles(clonedTiles);
-      setOrder(order); // re-set order even if unchanged
-      // Update OSRS data using the new username if provided
-      if (templateOsrsUsername) {
-        await updateOsrsData(templateOsrsUsername);
-      } else {
-        setOsrsData(null);
-      }
-      setIsExistingBoard(false); // new board is treated as new
-      setShowTemplateModal(false);
-      // Reset template modal fields
-      setTemplateBoardName("");
-      setTemplateBoardTitle("");
-      setTemplateBoardPassword("");
-      setTemplateOsrsUsername("");
-    } else {
-      alert(
-        "Failed to create template board. Board name might already be taken."
-      );
+    if (!response) {
+      console.log("Failed to create template board. Name might be taken.");
+      throw new Error("Template board creation failed.");
     }
+
+    console.log("Template board created successfully!");
+    setUndoStack([]);
+    // Switch to the newly created board
+    setBoardName(templateBoardName);
+    setBoardTitle(templateBoardTitle);
+    setBoardPassword(templateBoardPassword);
+    setOsrsUsername(templateOsrsUsername);
+    setTiles(clonedTiles);
+    setOrder(order);
+    if (templateOsrsUsername) {
+      // Attempt to update OSRS data with new username
+      await updateOsrsData(templateOsrsUsername).catch((err) => {
+        console.error("Error updating OSRS data for template user:", err);
+      });
+    } else {
+      setOsrsData(null);
+    }
+    setIsExistingBoard(false);
+    setShowTemplateModal(false);
+
+    // Reset template modal fields
+    setTemplateBoardName("");
+    setTemplateBoardTitle("");
+    setTemplateBoardPassword("");
+    setTemplateOsrsUsername("");
   };
 
+  // ------------------------------------------------
+  // Return all logic & state
+  // ------------------------------------------------
   return {
     rows,
     setRows: handleRowsChange,
