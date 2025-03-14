@@ -266,11 +266,24 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         setIsEditing(true);
       }}
     >
+      {/* Custom text display (non-wiki mode) */}
       {tileData.mode !== "wiki" && (
-        <span className="text-[#3b2f25]">
+        <span
+          className="
+            text-[#3b2f25]
+            whitespace-normal
+            break-words
+            text-center
+            px-1
+            overflow-hidden
+          "
+          style={{ maxHeight: "90%" }}
+        >
           {tileData.mode === "custom" ? tileData.content : ""}
         </span>
       )}
+
+      {/* Completion criteria display (for wiki or custom with targets) */}
       {tileData.target > 0 && (
         <div className="absolute bottom-2 w-full text-center text-[#3b2f25]">
           {`${formatNumber(tileData.progress)}/${formatNumber(
@@ -278,6 +291,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           )}`}
         </div>
       )}
+
       {/* Wiki Completed Tick */}
       {tileData.mode === "wiki" && (showCompleteTick || tileData.completed) && (
         <div
@@ -300,6 +314,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           ✔
         </div>
       )}
+
       {/* Wiki Overlay */}
       {tileData.mode === "wiki" && !isDragging && showWikiInfoOverlay && (
         <div
