@@ -10,6 +10,16 @@ const defaultTileData = {
   completed: false,
 };
 
+// Helper: Fetch with a timeout of 10 seconds (10000 ms)
+const fetchWithTimeout = (url, options = {}, timeout = 10000) => {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timed out")), timeout)
+    ),
+  ]);
+};
+
 const useBingoBoardLogic = () => {
   // Board properties
   const [rows, setRows] = useState(5);
@@ -220,7 +230,7 @@ const useBingoBoardLogic = () => {
   };
 
   // -----------------------------
-  // OSRS Data Update logic
+  // OSRS Data Update logic with timeout
   // -----------------------------
   const updateOsrsData = async (usernameParam) => {
     const usernameToUse = usernameParam || osrsUsername;
@@ -233,7 +243,8 @@ const useBingoBoardLogic = () => {
         usernameToUse
       )}`;
       const proxyUrl = `https://thingproxy.freeboard.io/fetch/${hiscoreUrl}`;
-      const response = await fetch(proxyUrl);
+      // Use fetchWithTimeout for a 10 second limit
+      const response = await fetchWithTimeout(proxyUrl, {}, 10000);
       if (!response.ok) {
         console.log("Failed to fetch OSRS hiscores from server.");
         throw new Error("Failed to fetch OSRS hiscores.");
@@ -346,7 +357,6 @@ const useBingoBoardLogic = () => {
     }
     console.log("Template board created successfully!");
     setUndoStack([]);
-    // Switch to the newly created board
     setBoardName(templateBoardName);
     setBoardTitle(templateBoardTitle);
     setBoardPassword(templateBoardPassword);
