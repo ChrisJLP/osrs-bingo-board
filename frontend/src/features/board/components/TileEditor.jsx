@@ -58,7 +58,6 @@ const skillIcons = {
 
 const getSkillIcon = (skill) => skillIcons[skill] || "";
 
-// RuneScape XP to Level formula
 const xpToLevel = (xp) => {
   let points = 0;
   for (let level = 1; level < 100; level++) {
@@ -82,7 +81,6 @@ const TileEditor = ({
 }) => {
   const editorRef = useRef(null);
 
-  // Pull from the custom hook that manages the tile data
   const {
     content,
     criteria,
@@ -98,7 +96,6 @@ const TileEditor = ({
     onCancel();
   });
 
-  // Additional local states
   const [skill, setSkill] = useState(initialData.skill || "");
   const [currentXp, setCurrentXp] = useState(initialData.currentXp || "");
   const [currentLevel, setCurrentLevel] = useState(
@@ -111,7 +108,6 @@ const TileEditor = ({
   const [error, setError] = useState("");
 
   useEffect(() => {
-    // If in skill mode and we have OSRS data for that skill, update the current level
     if (mode === "skill" && osrsData && skill) {
       const xpValue = osrsData[`${skill.toLowerCase()}Xp`];
       if (xpValue !== undefined) {
@@ -120,7 +116,6 @@ const TileEditor = ({
     }
   }, [mode, osrsData, skill]);
 
-  // If the user changes modes, clear any leftover wiki selection/error
   useEffect(() => {
     if (mode !== "wiki") {
       setSelectedWikiItem(null);
@@ -128,7 +123,6 @@ const TileEditor = ({
     }
   }, [mode]);
 
-  // When a user selects a result from the WikiSearch
   const handleWikiSelect = (result) => {
     setSelectedWikiItem(result);
     setError("");
@@ -136,10 +130,8 @@ const TileEditor = ({
   };
 
   const saveTileData = () => {
-    setError(""); // Clear any previous error
-
+    setError("");
     if (mode === "skill") {
-      // Save as skill tile
       onSave({
         mode: "skill",
         skill,
@@ -149,12 +141,10 @@ const TileEditor = ({
         content: skill,
       });
     } else if (mode === "wiki") {
-      // Must have a valid selection from Wiki
       if (!selectedWikiItem) {
         setError("Not a valid item");
         return;
       }
-      // If valid, save as wiki tile
       onSave({
         mode: "wiki",
         content,
@@ -162,22 +152,34 @@ const TileEditor = ({
         ...criteria,
       });
     } else {
-      // Custom tile
       onSave({ mode: "custom", content, ...criteria });
     }
     onCancel();
   };
 
-  // Render the modal
+  // Helper for tab button styling
+  const getTabClasses = (tabMode) => {
+    const isActive = mode === tabMode;
+    return [
+      "px-3",
+      "py-1",
+      "rounded-lg",
+      "transition",
+      "transform",
+      "text-[#3b2f25]",
+      isActive
+        ? "bg-[#f5e5cc] border border-[#8b6d48] font-semibold"
+        : "bg-[#d4af37] hover:bg-[#c59c2a] hover:scale-105",
+    ].join(" ");
+  };
+
   const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black bg-opacity-50"
         onClick={onCancel}
       ></div>
 
-      {/* Modal content */}
       <div
         ref={editorRef}
         className="relative bg-[#f0e8da] p-4 rounded-lg shadow-md w-full max-w-md mx-4"
@@ -187,22 +189,19 @@ const TileEditor = ({
         <div className="mb-4 flex space-x-2">
           <button
             onClick={() => handleModeChange("wiki")}
-            disabled={mode === "wiki"}
-            className="px-3 py-1 rounded-lg bg-[#d4af37] text-[#3b2f25] hover:bg-[#c59c2a] transition disabled:opacity-50"
+            className={getTabClasses("wiki")}
           >
             Wiki Search
           </button>
           <button
             onClick={() => handleModeChange("custom")}
-            disabled={mode === "custom"}
-            className="px-3 py-1 rounded-lg bg-[#d4af37] text-[#3b2f25] hover:bg-[#c59c2a] transition disabled:opacity-50"
+            className={getTabClasses("custom")}
           >
             Custom Entry
           </button>
           <button
             onClick={() => handleModeChange("skill")}
-            disabled={mode === "skill"}
-            className="px-3 py-1 rounded-lg bg-[#d4af37] text-[#3b2f25] hover:bg-[#c59c2a] transition disabled:opacity-50"
+            className={getTabClasses("skill")}
           >
             Skills
           </button>
