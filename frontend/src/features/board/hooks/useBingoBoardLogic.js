@@ -121,7 +121,6 @@ const useBingoBoardLogic = () => {
       setRows(data.rows || 5);
       setColumns(data.columns || 5);
       setBoardTitle(data.title || "Bingo Board");
-
       const fetchedTiles = {};
       (data.tiles || [])
         .sort((a, b) => a.position - b.position)
@@ -143,7 +142,6 @@ const useBingoBoardLogic = () => {
       setTiles(fetchedTiles);
       setShowFindModal(false);
       setUndoStack([]);
-
       if (data.player) {
         setOsrsUsername(data.player.username);
         const fallbackOsrsData = {
@@ -210,6 +208,8 @@ const useBingoBoardLogic = () => {
       response = await saveBoard(boardDataToSave);
       if (response) {
         console.log("Board saved successfully!");
+        // Mark the board as existing so subsequent saves update it.
+        setIsExistingBoard(true);
         setShowSaveModal(false);
         setUndoStack([]);
       } else {
@@ -234,19 +234,16 @@ const useBingoBoardLogic = () => {
       )}`;
       const proxyUrl = `https://thingproxy.freeboard.io/fetch/${hiscoreUrl}`;
       const response = await fetch(proxyUrl);
-
       if (!response.ok) {
         console.log("Failed to fetch OSRS hiscores from server.");
         throw new Error("Failed to fetch OSRS hiscores.");
       }
-
       const textData = await response.text();
       const lines = textData.split("\n").filter((line) => line.trim() !== "");
       if (lines.length < 24) {
         console.log("Invalid OSRS username or data format.");
         throw new Error("Invalid OSRS username provided.");
       }
-
       const parseHiscoresData = (textData) => {
         let lines = textData.split("\n").filter((line) => line.trim() !== "");
         if (lines.length < 24) {
@@ -293,10 +290,8 @@ const useBingoBoardLogic = () => {
         }
         return result;
       };
-
       const hiscores = parseHiscoresData(textData);
       setOsrsData(hiscores);
-
       console.log("OSRS data updated successfully!");
       return true;
     } catch (error) {
@@ -331,7 +326,6 @@ const useBingoBoardLogic = () => {
         };
       }
     });
-
     const newBoardData = {
       name: templateBoardName,
       password: templateBoardPassword,
@@ -341,7 +335,6 @@ const useBingoBoardLogic = () => {
       columns,
       tiles: order.map((tileId) => clonedTiles[tileId]),
     };
-
     const response = await saveBoard(newBoardData);
     if (!response) {
       console.log(
@@ -351,16 +344,15 @@ const useBingoBoardLogic = () => {
         "Failed to create template board. Board name might already be taken."
       );
     }
-
-    // Board creation succeeded; update state so the new board is displayed.
+    console.log("Template board created successfully!");
     setUndoStack([]);
+    // Switch to the newly created board
     setBoardName(templateBoardName);
     setBoardTitle(templateBoardTitle);
     setBoardPassword(templateBoardPassword);
     setOsrsUsername(templateOsrsUsername);
     setTiles(clonedTiles);
     setOrder(order);
-
     let updateMessage = "";
     if (templateOsrsUsername) {
       try {
@@ -374,7 +366,6 @@ const useBingoBoardLogic = () => {
       setOsrsData(null);
       updateMessage = "New board created.";
     }
-
     setIsExistingBoard(false);
     setShowTemplateModal(false);
     // Reset template modal fields
@@ -382,7 +373,6 @@ const useBingoBoardLogic = () => {
     setTemplateBoardTitle("");
     setTemplateBoardPassword("");
     setTemplateOsrsUsername("");
-
     return updateMessage;
   };
 
