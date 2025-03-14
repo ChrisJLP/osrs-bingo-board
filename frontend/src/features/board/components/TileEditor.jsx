@@ -58,7 +58,6 @@ const skillIcons = {
 
 const getSkillIcon = (skill) => skillIcons[skill] || "";
 
-// RuneScape XP to Level formula
 const xpToLevel = (xp) => {
   let points = 0;
   for (let level = 1; level < 100; level++) {
@@ -71,34 +70,7 @@ const xpToLevel = (xp) => {
   return 99;
 };
 
-const skillMapping = {
-  Overall: "overallXp",
-  Attack: "attackXp",
-  Defence: "defenceXp",
-  Strength: "strengthXp",
-  Hitpoints: "hitpointsXp",
-  Ranged: "rangedXp",
-  Prayer: "prayerXp",
-  Magic: "magicXp",
-  Cooking: "cookingXp",
-  Woodcutting: "woodcuttingXp",
-  Fletching: "fletchingXp",
-  Fishing: "fishingXp",
-  Firemaking: "firemakingXp",
-  Crafting: "craftingXp",
-  Smithing: "smithingXp",
-  Mining: "miningXp",
-  Herblore: "herbloreXp",
-  Agility: "agilityXp",
-  Thieving: "thievingXp",
-  Slayer: "slayerXp",
-  Farming: "farmingXp",
-  Runecrafting: "runecraftXp",
-  Hunter: "hunterXp",
-  Construction: "constructionXp",
-};
-
-const skillsList = Object.keys(skillMapping);
+const skillsList = Object.keys(skillIcons);
 
 const TileEditor = ({
   initialData,
@@ -134,7 +106,7 @@ const TileEditor = ({
 
   useEffect(() => {
     if (mode === "skill" && osrsData && skill) {
-      const xpValue = osrsData[skillMapping[skill]];
+      const xpValue = osrsData[`${skill.toLowerCase()}Xp`];
       if (xpValue !== undefined) {
         setCurrentLevel(xpToLevel(Number(xpValue)));
       }
@@ -175,7 +147,7 @@ const TileEditor = ({
       {/* Modal content */}
       <div
         ref={editorRef}
-        className="relative bg-white p-4 rounded-lg shadow-md w-full max-w-md mx-4"
+        className="relative bg-[#f0e8da] p-4 rounded-lg shadow-md w-full max-w-md mx-4"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Mode Tabs */}
@@ -183,28 +155,28 @@ const TileEditor = ({
           <button
             onClick={() => handleModeChange("wiki")}
             disabled={mode === "wiki"}
-            className="px-3 py-1 rounded-lg bg-[#D4AF37] text-[#362511] hover:bg-[#C59C2A] transition disabled:opacity-50"
+            className="px-3 py-1 rounded-lg bg-[#d4af37] text-[#3b2f25] hover:bg-[#c59c2a] transition disabled:opacity-50"
           >
             Wiki Search
           </button>
           <button
             onClick={() => handleModeChange("custom")}
             disabled={mode === "custom"}
-            className="px-3 py-1 rounded-lg bg-[#D4AF37] text-[#362511] hover:bg-[#C59C2A] transition disabled:opacity-50"
+            className="px-3 py-1 rounded-lg bg-[#d4af37] text-[#3b2f25] hover:bg-[#c59c2a] transition disabled:opacity-50"
           >
             Custom Entry
           </button>
           <button
             onClick={() => handleModeChange("skill")}
             disabled={mode === "skill"}
-            className="px-3 py-1 rounded-lg bg-[#D4AF37] text-[#362511] hover:bg-[#C59C2A] transition disabled:opacity-50"
+            className="px-3 py-1 rounded-lg bg-[#d4af37] text-[#3b2f25] hover:bg-[#c59c2a] transition disabled:opacity-50"
           >
             Skills
           </button>
         </div>
 
         {/* Editor Body */}
-        <div className="mb-4 text-[#362511]">
+        <div className="mb-4 text-[#3b2f25]">
           {mode === "wiki" && (
             <>
               <WikiSearch
@@ -233,18 +205,19 @@ const TileEditor = ({
                     setSkill(e.target.value);
                     if (
                       osrsData &&
-                      osrsData[skillMapping[e.target.value]] !== undefined
+                      osrsData[`${e.target.value.toLowerCase()}Xp`] !==
+                        undefined
                     ) {
                       setCurrentLevel(
                         xpToLevel(
-                          Number(osrsData[skillMapping[e.target.value]])
+                          Number(osrsData[`${e.target.value.toLowerCase()}Xp`])
                         )
                       );
                     } else {
                       setCurrentLevel("");
                     }
                   }}
-                  className="border border-[#8B5A2B] rounded-lg p-1 w-full"
+                  className="border border-[#8b6d48] rounded-lg p-1 w-full text-[#3b2f25]"
                 >
                   <option value="">--Select Skill--</option>
                   {skillsList.map((s) => (
@@ -270,7 +243,7 @@ const TileEditor = ({
                       setCurrentXp(e.target.value);
                       setCurrentLevel(xpToLevel(xpVal));
                     }}
-                    className="border border-[#8B5A2B] rounded-lg p-1 w-full"
+                    className="border border-[#8b6d48] rounded-lg p-1 w-full text-[#3b2f25]"
                   />
                   <div>Computed Level: {currentLevel || "N/A"}</div>
                 </div>
@@ -282,7 +255,7 @@ const TileEditor = ({
                   type="number"
                   value={goalLevel}
                   onChange={(e) => setGoalLevel(e.target.value)}
-                  className="border border-[#8B5A2B] rounded-lg p-1 w-full"
+                  className="border border-[#8b6d48] rounded-lg p-1 w-full text-[#3b2f25]"
                 />
               </div>
             </div>
@@ -300,13 +273,13 @@ const TileEditor = ({
           <div className="flex space-x-2">
             <button
               onClick={saveTileData}
-              className="bg-[#D4AF37] text-[#362511] p-2 rounded-lg transition hover:bg-[#C59C2A] hover:scale-105"
+              className="bg-[#d4af37] text-[#3b2f25] p-2 rounded-lg transition hover:bg-[#c59c2a] hover:scale-105"
             >
               Save
             </button>
             <button
               onClick={onCancel}
-              className="bg-gray-300 text-[#362511] p-2 rounded-lg hover:scale-105 transition"
+              className="bg-[#bfb3a7] text-[#3b2f25] p-2 rounded-lg hover:scale-105 transition"
             >
               Cancel
             </button>

@@ -1,4 +1,3 @@
-// WikiSearch.jsx
 import React, { useState, useEffect } from "react";
 
 const WikiSearch = ({ onSelect }) => {
@@ -57,6 +56,7 @@ const WikiSearch = ({ onSelect }) => {
         placeholder="Search OSRS Wiki..."
         value={query}
         onChange={handleInputChange}
+        className="border border-[#8b6d48] rounded-lg p-1 mb-2 w-full text-[#3b2f25]"
       />
       {results.length > 0 && (
         <ul style={{ listStyle: "none", padding: 0 }}>
@@ -79,7 +79,7 @@ const WikiSearch = ({ onSelect }) => {
                   style={{ width: "20px", height: "20px" }}
                 />
               )}
-              <span>{result.title}</span>
+              <span className="text-[#3b2f25]">{result.title}</span>
             </li>
           ))}
         </ul>

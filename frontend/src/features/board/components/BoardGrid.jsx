@@ -26,7 +26,6 @@ const BoardGrid = ({
       ? order
       : Array.from({ length: rows * columns }, (_, i) => i + 1);
 
-  // If row/col changes, reset or create an updated order
   useEffect(() => {
     const neededOrder = Array.from({ length: rows * columns }, (_, i) => i + 1);
     if (!order || order.length !== neededOrder.length) {
@@ -34,14 +33,13 @@ const BoardGrid = ({
     }
   }, [rows, columns, order, onOrderChange]);
 
-  // useBoardGridDnD is presumably your custom DnD logic hook
   const { sensors, handleDragEnd } = useBoardGridDnD(
     currentOrder,
     onOrderChange
   );
 
   return (
-    <div className="md:w-[700px] w-[400px] border-2 border-[#8B5A2B] bg-[#FDF6E3] p-2 rounded-lg shadow-md">
+    <div className="md:w-[700px] w-[400px] border-2 border-[#8b6d48] bg-[#f0e8da] p-2 rounded-lg shadow-md">
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}

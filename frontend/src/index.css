@@ -1,16 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Lora:wght@400;700&family=Playfair+Display:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Old+Standard+TT&display=swap');
+
+
+
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Root styles can remain, but remove forced background-color if you want Tailwind to handle it */
+/* Global styles using Merriweather */
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family:  'Cinzel', 'Merriweather', Georgia, serif;
   line-height: 1.5;
   font-weight: 400;
-  /* color-scheme: light; */
-  /* color: #213547; */          /* Commented out if you want to rely on Tailwind text color */
-  /* background-color: #ffffff; */ /* Remove to allow Tailwind's background to show */
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -77,4 +81,3 @@ button:focus-visible {
     background-color: #f9f9f9;
   } */
 }
-

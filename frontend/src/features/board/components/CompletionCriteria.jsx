@@ -1,4 +1,3 @@
-// frontend/src/features/board/components/CompletionCriteria.jsx
 import React, { useState, useEffect } from "react";
 
 const parseShorthand = (inputStr) => {
@@ -16,13 +15,10 @@ const parseShorthand = (inputStr) => {
 };
 
 const CompletionCriteria = ({ value, onChange }) => {
-  // value = { target, unit, progress }
-  // Maintain local string states for the input fields.
   const [targetStr, setTargetStr] = useState(value.target.toString());
   const [progressStr, setProgressStr] = useState(value.progress.toString());
 
   useEffect(() => {
-    // When the parent value changes, update local state.
     setTargetStr(value.target.toString());
     setProgressStr(value.progress.toString());
   }, [value.target, value.progress]);
@@ -35,11 +31,9 @@ const CompletionCriteria = ({ value, onChange }) => {
         "The new target is below the current progress. If you proceed, progress will be set equal to the new target. Do you want to continue?"
       );
       if (!confirmed) {
-        // Revert input to previous target if user cancels.
         setTargetStr(value.target.toString());
         return;
       } else {
-        // If confirmed, update target and set progress equal to the new target.
         onChange({ ...value, target: newTarget, progress: newTarget });
         setTargetStr(newTarget.toString());
         return;
@@ -85,7 +79,7 @@ const CompletionCriteria = ({ value, onChange }) => {
   };
 
   return (
-    <div>
+    <div className="text-[#3b2f25]">
       <div>
         <label>
           Target:
@@ -96,21 +90,23 @@ const CompletionCriteria = ({ value, onChange }) => {
             onBlur={handleTargetBlur}
             onKeyDown={handleTargetKeyDown}
             aria-label="Target"
+            className="border border-[#8b6d48] rounded-lg p-1 ml-2 w-20 text-[#3b2f25]"
           />
         </label>
-        <label>
+        <label className="ml-4">
           Unit:
           <select
             value={value.unit}
             onChange={handleUnitChange}
             aria-label="Unit"
+            className="border border-[#8b6d48] rounded-lg p-1 ml-2 text-[#3b2f25]"
           >
             <option value="drops">Drops</option>
             <option value="xp">XP</option>
           </select>
         </label>
       </div>
-      <div>
+      <div className="mt-2">
         <label>
           Progress:
           <input
@@ -120,6 +116,7 @@ const CompletionCriteria = ({ value, onChange }) => {
             onBlur={handleProgressBlur}
             onKeyDown={handleProgressKeyDown}
             aria-label="Progress"
+            className="border border-[#8b6d48] rounded-lg p-1 ml-2 w-20 text-[#3b2f25]"
           />
         </label>
       </div>

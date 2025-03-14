@@ -3,7 +3,7 @@ import NavBar from "./components/NavBar";
 
 function App() {
   return (
-    <div className="bg-[#FDF6E3] min-h-screen w-full">
+    <div className="bg-[#e4d9c8] min-h-screen w-full">
       <NavBar />
       <div className="max-w-5xl mx-auto p-4">
         <BingoBoard />

@@ -108,7 +108,6 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     }
   }, [isDragging]);
 
-  // Removed "transition" from tailwind classes, replaced with "transition-colors"
   const style = {
     transform: isEditing ? "none" : CSS.Transform.toString(transform),
     transition: isEditing ? "none" : transition,
@@ -141,7 +140,9 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         }
       : {};
 
-    skillBackgroundStyle.backgroundColor = isComplete ? "#D1E5C4" : "#F5EDE1";
+    skillBackgroundStyle.backgroundColor = isComplete
+      ? "#d0dbc0" // completed
+      : "#f0e8da"; // incomplete
 
     return (
       <div
@@ -149,7 +150,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         style={{ ...style, ...skillBackgroundStyle }}
         {...attributes}
         {...listeners}
-        className="border border-[#8B5A2B] rounded-lg shadow-md w-full h-full cursor-pointer
+        className="border border-[#8b6d48] rounded-lg shadow-md w-full h-full cursor-pointer
                    hover:scale-105 transition-colors
                    flex items-center justify-center"
         onClick={(e) => {
@@ -163,7 +164,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
               position: "absolute",
               top: "4px",
               left: "4px",
-              color: "#362511",
+              color: "#3b2f25",
               fontSize: "1.5rem",
               zIndex: 10,
             }}
@@ -171,7 +172,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
             ✔
           </div>
         )}
-        <div className="absolute bottom-2 w-full text-center text-[#362511]">
+        <div className="absolute bottom-2 w-full text-center text-[#3b2f25]">
           {`${currentLevel}/${goalLevel}`}
         </div>
         {isEditing && (
@@ -198,9 +199,9 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     };
   }
   if (tileData.completed) {
-    backgroundStyle.backgroundColor = "#D1E5C4";
+    backgroundStyle.backgroundColor = "#d0dbc0"; // completed
   } else if (!backgroundStyle.backgroundColor) {
-    backgroundStyle.backgroundColor = "#F5EDE1";
+    backgroundStyle.backgroundColor = "#f0e8da"; // incomplete
   }
 
   const handleMouseMove = (e) => {
@@ -257,7 +258,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
       onMouseLeave={tileData.mode === "wiki" ? handleMouseLeave : undefined}
       {...(isEditing ? {} : attributes)}
       {...(isEditing ? {} : listeners)}
-      className="border border-[#8B5A2B] rounded-lg shadow-md w-full h-full cursor-pointer
+      className="border border-[#8b6d48] rounded-lg shadow-md w-full h-full cursor-pointer
                  hover:scale-105 transition-colors
                  flex items-center justify-center"
       onClick={(e) => {
@@ -266,12 +267,12 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
       }}
     >
       {tileData.mode !== "wiki" && (
-        <span className="text-[#362511]">
+        <span className="text-[#3b2f25]">
           {tileData.mode === "custom" ? tileData.content : ""}
         </span>
       )}
       {tileData.target > 0 && (
-        <div className="absolute bottom-2 w-full text-center text-[#362511]">
+        <div className="absolute bottom-2 w-full text-center text-[#3b2f25]">
           {`${formatNumber(tileData.progress)}/${formatNumber(
             tileData.target
           )}`}
@@ -291,7 +292,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
             bottom: "4px",
             left: "4px",
             cursor: "pointer",
-            color: "#362511",
+            color: "#3b2f25",
             fontSize: "1.5rem",
             zIndex: 10,
           }}
@@ -307,14 +308,14 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
             position: "absolute",
             top: "4px",
             right: "4px",
-            backgroundColor: "#FFFFFF",
+            backgroundColor: "#f0e8da",
             padding: "4px",
             borderRadius: "4px",
             fontSize: "0.8rem",
             zIndex: 10,
           }}
         >
-          <div className="text-[#362511]">{tileData.content}</div>
+          <div className="text-[#3b2f25]">{tileData.content}</div>
           <div>
             <a
               onClick={(e) => e.stopPropagation()}
@@ -323,7 +324,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
               )}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#362511] underline"
+              className="underline text-[#3b2f25]"
             >
               Wiki Link
             </a>
