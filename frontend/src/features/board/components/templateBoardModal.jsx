@@ -14,7 +14,7 @@ const TemplateBoardModal = ({
   osrsUsername,
   setOsrsUsername,
   errorMessage,
-  loading, // new prop
+  loading,
 }) => {
   if (!isOpen) return null;
   return (
@@ -57,10 +57,12 @@ const TemplateBoardModal = ({
         />
         <input
           type="text"
+          name="templateOsrsUsernameField"
           value={osrsUsername}
           onChange={(e) => setOsrsUsername(e.target.value)}
           className="border border-[#8B5A2B] rounded-lg p-1 mb-2 w-full text-[#362511]"
           placeholder="Enter OSRS username (optional)"
+          autoComplete="new-password"
         />
         {errorMessage && <p className="text-red-500 mb-2">{errorMessage}</p>}
         <div className="flex justify-end space-x-2">

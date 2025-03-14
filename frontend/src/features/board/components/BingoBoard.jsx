@@ -62,7 +62,7 @@ const BingoBoard = () => {
   // State for OSRS hiscores update message
   const [osrsUpdateMessage, setOsrsUpdateMessage] = useState("");
 
-  // Success popup state (for board saves/updates/template creation)
+  // Success popup state (for board saves/updates/templates)
   const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
@@ -136,7 +136,12 @@ const BingoBoard = () => {
 
   return (
     <div className="flex flex-col items-center p-4 text-[#362511]">
-      {/* Success Popup for board saves/updates/templates */}
+      {/* Hidden dummy input to help disable autofill */}
+      <div style={{ display: "none" }}>
+        <input type="text" autoComplete="username" />
+      </div>
+
+      {/* Success Popup */}
       {successMessage && (
         <SuccessPopup
           message={successMessage}
@@ -147,7 +152,7 @@ const BingoBoard = () => {
       {/* Title */}
       <h1 className="text-2xl font-bold text-center mb-4">{boardTitle}</h1>
 
-      {/* OSRS Username & Undo/Redo Row */}
+      {/* OSRS Username / Undo-Redo Row */}
       <div className="w-full max-w-[700px] mx-auto flex flex-col mb-4">
         <div className="flex items-end justify-between">
           <div className="flex flex-col">
@@ -157,12 +162,13 @@ const BingoBoard = () => {
             <div className="flex items-center space-x-2">
               <input
                 id="osrsUsername"
+                name="osrsUsernameField"
                 type="text"
                 value={osrsUsername}
                 onChange={(e) => setOsrsUsername(e.target.value)}
                 className="border border-[#8B5A2B] rounded-lg p-1"
                 placeholder="Enter OSRS username"
-                autoComplete="off"
+                autoComplete="new-password"
               />
               <button
                 onClick={handleUpdateOSRS}
