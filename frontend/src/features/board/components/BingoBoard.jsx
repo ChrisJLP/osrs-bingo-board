@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import SaveBoardModal from "./SaveBoardModal";
 import FindBoardModal from "./FindBoardModal";
 import TemplateBoardModal from "./templateBoardModal";
@@ -52,6 +52,9 @@ const BingoBoard = () => {
     createTemplateBoard,
   } = useBingoBoardLogic();
 
+  // New state to control the display of "Data Cached"
+  const [showDataCached, setShowDataCached] = useState(false);
+
   useEffect(() => {
     const handleBeforeUnload = (e) => {
       if (hasUnsavedChanges) {
@@ -76,11 +79,14 @@ const BingoBoard = () => {
   };
 
   return (
-    <div className="flex flex-col items-center p-4 text-[#3b2f25]">
+    <div className="flex flex-col items-center p-4 text-[#362511]">
+      {/* Title (centered) */}
       <h1 className="text-2xl font-bold text-center mb-4">{boardTitle}</h1>
 
+      {/* Row with OSRS Username (left) + Undo/Redo (right) */}
       <div className="w-full max-w-[700px] mx-auto flex flex-col mb-4">
         <div className="flex items-end justify-between">
+          {/* Left side: OSRS username */}
           <div className="flex flex-col">
             <label className="font-semibold mb-1" htmlFor="osrsUsername">
               OSRS Username:
@@ -91,30 +97,39 @@ const BingoBoard = () => {
                 type="text"
                 value={osrsUsername}
                 onChange={(e) => setOsrsUsername(e.target.value)}
-                className="border border-[#8b6d48] rounded-lg p-1 text-[#3b2f25]"
+                className="border border-[#8B5A2B] rounded-lg p-1"
                 placeholder="Enter OSRS username"
                 autoComplete="off"
               />
               <button
-                onClick={() => updateOsrsData()}
-                className="bg-[#d4af37] text-[#3b2f25] px-3 py-1 rounded-lg transition hover:bg-[#c59c2a] hover:scale-105"
+                onClick={async () => {
+                  await updateOsrsData();
+                  setShowDataCached(true);
+                  setTimeout(() => {
+                    setShowDataCached(false);
+                  }, 7000);
+                }}
+                className="bg-[#D4AF37] text-[#362511] px-3 py-1 rounded-lg transition hover:bg-[#C59C2A] hover:scale-105"
               >
                 Update
               </button>
-              {osrsData && <span className="text-green-600">Data Cached</span>}
+              {showDataCached && (
+                <span className="text-green-600">Data Cached</span>
+              )}
             </div>
           </div>
 
+          {/* Right side: Undo/Redo */}
           <div className="flex space-x-2">
             <button
               onClick={undo}
-              className="bg-[#bfb3a7] text-[#3b2f25] px-3 py-1 text-base leading-tight rounded-lg transition hover:scale-105"
+              className="bg-[#bfb3a7] text-[#362511] px-3 py-1 text-base leading-tight rounded-lg transition hover:scale-105"
             >
               Undo
             </button>
             <button
               onClick={redo}
-              className="bg-[#bfb3a7] text-[#3b2f25] px-3 py-1 text-base leading-tight rounded-lg transition hover:scale-105"
+              className="bg-[#bfb3a7] text-[#362511] px-3 py-1 text-base leading-tight rounded-lg transition hover:scale-105"
             >
               Redo
             </button>
@@ -122,6 +137,7 @@ const BingoBoard = () => {
         </div>
       </div>
 
+      {/* Board and Controls */}
       <div className="relative w-full max-w-[1200px] mb-4">
         <div className="mx-auto" style={{ width: "700px" }}>
           <BoardGrid
@@ -134,7 +150,6 @@ const BingoBoard = () => {
             osrsData={osrsData}
           />
         </div>
-
         <div className="absolute top-0 left-0" style={{ margin: "1rem" }}>
           <BoardControls
             rows={rows}
@@ -145,21 +160,23 @@ const BingoBoard = () => {
         </div>
       </div>
 
+      {/* Save/Template Buttons */}
       <div className="flex space-x-2 justify-center">
         <button
           onClick={() => setShowSaveModal(true)}
-          className="bg-[#d4af37] text-[#3b2f25] px-4 py-2 rounded-lg transition hover:bg-[#c59c2a] hover:scale-105"
+          className="bg-[#D4AF37] text-[#362511] px-4 py-2 rounded-lg transition hover:bg-[#C59C2A] hover:scale-105"
         >
           {isExistingBoard ? "Update board" : "Save Board"}
         </button>
         <button
           onClick={handleTemplateClick}
-          className="bg-[#d4af37] text-[#3b2f25] px-4 py-2 rounded-lg transition hover:bg-[#c59c2a] hover:scale-105"
+          className="bg-[#D4AF37] text-[#362511] px-4 py-2 rounded-lg transition hover:bg-[#C59C2A] hover:scale-105"
         >
           Use board as a template
         </button>
       </div>
 
+      {/* Modals */}
       <SaveBoardModal
         isOpen={showSaveModal}
         onConfirm={confirmSave}
