@@ -78,6 +78,7 @@ const TileEditor = ({
   onSave,
   onCancel,
   osrsData,
+  defaultMode, // NEW: mode passed from Tile.jsx
 }) => {
   const editorRef = useRef(null);
 
@@ -91,10 +92,15 @@ const TileEditor = ({
     handleModeChange,
     handleSave,
     handleCancel: handleEditorCancel,
-  } = useTileEditor(initialData, tilePosition, (resetData) => {
-    onSave(resetData);
-    onCancel();
-  });
+  } = useTileEditor(
+    initialData,
+    tilePosition,
+    (resetData) => {
+      onSave(resetData);
+      onCancel();
+    },
+    defaultMode
+  );
 
   const [skill, setSkill] = useState(initialData.skill || "");
   const [currentXp, setCurrentXp] = useState(initialData.currentXp || "");
@@ -103,7 +109,7 @@ const TileEditor = ({
   );
   const [goalLevel, setGoalLevel] = useState(initialData.goalLevel || "");
 
-  // For wiki searching
+  // For wiki searching and error validation
   const [selectedWikiItem, setSelectedWikiItem] = useState(null);
   const [error, setError] = useState("");
 
@@ -157,7 +163,7 @@ const TileEditor = ({
     onCancel();
   };
 
-  // Helper for tab button styling
+  // Helper for active tab styling
   const getTabClasses = (tabMode) => {
     const isActive = mode === tabMode;
     return [
@@ -179,7 +185,6 @@ const TileEditor = ({
         className="absolute inset-0 bg-black bg-opacity-50"
         onClick={onCancel}
       ></div>
-
       <div
         ref={editorRef}
         className="relative bg-[#f0e8da] p-4 rounded-lg shadow-md w-full max-w-md mx-4"
@@ -218,11 +223,9 @@ const TileEditor = ({
               </div>
             </>
           )}
-
           {mode === "custom" && (
             <CustomEntry value={content} onChange={handleContentChange} />
           )}
-
           {mode === "skill" && (
             <div className="skill-editor">
               <div className="mb-2">
@@ -276,7 +279,6 @@ const TileEditor = ({
                   <div>Computed Level: {currentLevel || "N/A"}</div>
                 </div>
               )}
-
               <div className="mb-2">
                 <label className="block mb-1">Goal Level:</label>
                 <input
@@ -290,7 +292,6 @@ const TileEditor = ({
           )}
         </div>
 
-        {/* Error Display (if any) */}
         {error && <p className="text-red-500 mb-4">{error}</p>}
 
         {/* Footer Buttons */}

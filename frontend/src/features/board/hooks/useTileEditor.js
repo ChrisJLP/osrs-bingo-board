@@ -1,8 +1,6 @@
-// frontend/src/hooks/useTileEditor.js
 import { useState, useRef } from "react";
 
-const useTileEditor = (initialData, tilePosition, onReset) => {
-  // Store original values in a ref to reset later.
+const useTileEditor = (initialData, tilePosition, onReset, defaultMode) => {
   const initialValues = useRef({
     content: initialData.content || "",
     criteria: {
@@ -12,13 +10,11 @@ const useTileEditor = (initialData, tilePosition, onReset) => {
     },
   });
 
-  // State management
   const [content, setContent] = useState(initialValues.current.content);
   const [criteria, setCriteria] = useState(initialValues.current.criteria);
-  const [mode, setMode] = useState("wiki"); // "wiki" or "custom"
+  const [mode, setMode] = useState(defaultMode || "wiki");
   const [dirty, setDirty] = useState(false);
 
-  // Handler functions
   const handleContentChange = (newContent) => {
     setContent(newContent);
     setDirty(true);
@@ -45,7 +41,6 @@ const useTileEditor = (initialData, tilePosition, onReset) => {
     setDirty(false);
   };
 
-  // Reset function - Now immediately resets and calls onReset
   const handleReset = () => {
     if (window.confirm("Are you sure you want to reset this tile?")) {
       const resetData = {
@@ -60,8 +55,8 @@ const useTileEditor = (initialData, tilePosition, onReset) => {
         unit: resetData.unit,
         progress: resetData.progress,
       });
-      setDirty(false); // Reset means no unsaved changes
-      onReset(resetData); // Immediately update tile and close editor
+      setDirty(false);
+      onReset(resetData);
     }
   };
 

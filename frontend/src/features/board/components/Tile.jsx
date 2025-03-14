@@ -3,6 +3,7 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import TileEditor from "./TileEditor";
 
+// Utility function to format big numbers (e.g., 1500 -> 1.5k)
 const formatNumber = (num) => {
   if (num >= 1_000_000) {
     return (num / 1_000_000).toFixed(num % 1_000_000 ? 1 : 0) + "m";
@@ -12,6 +13,7 @@ const formatNumber = (num) => {
   return num.toString();
 };
 
+// Basic XP -> Level formula used previously
 const xpToLevel = (xp) => {
   let points = 0;
   for (let level = 1; level < 100; level++) {
@@ -24,6 +26,7 @@ const xpToLevel = (xp) => {
   return 99;
 };
 
+// Maps skill names to OSRS data fields
 const skillMapping = {
   Overall: "overallXp",
   Attack: "attackXp",
@@ -52,6 +55,7 @@ const skillMapping = {
 };
 
 const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
+  // DnD kit setup
   const {
     attributes,
     listeners,
@@ -62,6 +66,8 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
   } = useSortable({ id: id.toString() });
 
   const [isEditing, setIsEditing] = useState(false);
+
+  // Merge the tile's initial data with defaults
   const [tileData, setTileData] = useState(
     initialData || {
       content: id.toString(),
@@ -71,18 +77,16 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
       completed: false,
       currentLevel: 0,
       goalLevel: 0,
+      mode: "wiki", // fallback if no mode is set
     }
   );
 
-  const [showCompleteTick, setShowCompleteTick] = useState(false);
-  const [showWikiInfoOverlay, setShowWikiInfoOverlay] = useState(false);
-  const hoverTimerRef = useRef(null);
-  const wikiOverlayTimerRef = useRef(null);
-
+  // If `initialData` changes, update local tileData
   useEffect(() => {
     setTileData(initialData);
   }, [initialData]);
 
+  // If skill tile, auto-update current level from OSRS data
   useEffect(() => {
     if (tileData.mode === "skill" && tileData.skill && osrsData) {
       const xpProp = skillMapping[tileData.skill];
@@ -98,16 +102,19 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     }
   }, [osrsData, tileData.mode, tileData.skill, tileData.currentLevel]);
 
-  useEffect(() => {
-    if (!isDragging) {
-      if (wikiOverlayTimerRef.current) {
-        clearTimeout(wikiOverlayTimerRef.current);
-        wikiOverlayTimerRef.current = null;
-      }
-      setShowWikiInfoOverlay(false);
-    }
-  }, [isDragging]);
+  // Save changes from TileEditor
+  const handleSave = (newData) => {
+    setTileData(newData);
+    onTileUpdate?.(id, newData);
+    setIsEditing(false);
+  };
 
+  // Cancel editing
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  // DnD styling
   const style = {
     transform: isEditing ? "none" : CSS.Transform.toString(transform),
     transition: isEditing ? "none" : transition,
@@ -115,22 +122,15 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
     position: "relative",
   };
 
-  const handleSave = (newData) => {
-    setTileData(newData);
-    if (onTileUpdate) {
-      onTileUpdate(id, newData);
-    }
-    setIsEditing(false);
-  };
+  // =============== RENDER LOGIC ===============
 
-  const handleCancel = () => setIsEditing(false);
-
-  // If skill tile
+  // If it's a skill tile with a valid skill
   if (tileData.mode === "skill" && tileData.skill) {
     const currentLevel = Number(tileData.currentLevel) || 0;
     const goalLevel = Number(tileData.goalLevel) || 0;
     const isComplete = goalLevel > 0 && currentLevel >= goalLevel;
 
+    // For skill tiles, we sometimes show a skill icon background or color
     const skillBackgroundStyle = tileData.imageUrl
       ? {
           backgroundImage: `url(${tileData.imageUrl})`,
@@ -140,9 +140,10 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         }
       : {};
 
+    // If it's complete, color it differently
     skillBackgroundStyle.backgroundColor = isComplete
-      ? "#d0dbc0" // completed
-      : "#f0e8da"; // incomplete
+      ? "#d0dbc0" // greenish for completed
+      : "#f0e8da"; // normal tile color
 
     return (
       <div
@@ -151,13 +152,13 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
         {...attributes}
         {...listeners}
         className="border border-[#8b6d48] rounded-lg shadow-md w-full h-full cursor-pointer
-                   hover:scale-105 transition-colors
-                   flex items-center justify-center"
+                   hover:scale-105 transition-colors flex items-center justify-center"
         onClick={(e) => {
           e.stopPropagation();
           setIsEditing(true);
         }}
       >
+        {/* Completion checkmark if done */}
         {isComplete && (
           <div
             style={{
@@ -172,9 +173,13 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
             ✔
           </div>
         )}
+
+        {/* Show currentLevel / goalLevel at bottom */}
         <div className="absolute bottom-2 w-full text-center text-[#3b2f25]">
           {`${currentLevel}/${goalLevel}`}
         </div>
+
+        {/* If editing, show the tile editor */}
         {isEditing && (
           <TileEditor
             initialData={tileData}
@@ -182,14 +187,16 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
             onSave={handleSave}
             onCancel={handleCancel}
             osrsData={osrsData}
+            defaultMode={tileData.mode} // important line
           />
         )}
       </div>
     );
   }
 
-  // Otherwise, wiki or custom
+  // Otherwise, handle wiki or custom
   let backgroundStyle = {};
+  // For wiki tiles with an image
   if (tileData.mode === "wiki" && tileData.imageUrl) {
     backgroundStyle = {
       backgroundImage: `url(${tileData.imageUrl})`,
@@ -198,12 +205,33 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
       backgroundPosition: "center",
     };
   }
+
+  // Completed tiles get a greenish color
   if (tileData.completed) {
-    backgroundStyle.backgroundColor = "#d0dbc0"; // completed
+    backgroundStyle.backgroundColor = "#d0dbc0";
   } else if (!backgroundStyle.backgroundColor) {
-    backgroundStyle.backgroundColor = "#f0e8da"; // incomplete
+    // default background
+    backgroundStyle.backgroundColor = "#f0e8da";
   }
 
+  // For wiki overlay & checkmark
+  const [showCompleteTick, setShowCompleteTick] = useState(false);
+  const [showWikiInfoOverlay, setShowWikiInfoOverlay] = useState(false);
+  const hoverTimerRef = useRef(null);
+  const wikiOverlayTimerRef = useRef(null);
+
+  // If user is dragging, we hide overlays
+  useEffect(() => {
+    if (!isDragging) {
+      if (wikiOverlayTimerRef.current) {
+        clearTimeout(wikiOverlayTimerRef.current);
+        wikiOverlayTimerRef.current = null;
+      }
+      setShowWikiInfoOverlay(false);
+    }
+  }, [isDragging]);
+
+  // Mouse logic for wiki overlay
   const handleMouseMove = (e) => {
     if (tileData.mode === "wiki") {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -259,15 +287,14 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
       {...(isEditing ? {} : attributes)}
       {...(isEditing ? {} : listeners)}
       className="border border-[#8b6d48] rounded-lg shadow-md w-full h-full cursor-pointer
-                 hover:scale-105 transition-colors
-                 flex items-center justify-center"
+                 hover:scale-105 transition-colors flex items-center justify-center"
       onClick={(e) => {
         e.stopPropagation();
         setIsEditing(true);
       }}
     >
-      {/* Custom text display (non-wiki mode) */}
-      {tileData.mode !== "wiki" && (
+      {/* For custom text, we show the text. Wiki mode uses the background image. */}
+      {tileData.mode === "custom" && (
         <span
           className="
             text-[#3b2f25]
@@ -279,11 +306,11 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           "
           style={{ maxHeight: "90%" }}
         >
-          {tileData.mode === "custom" ? tileData.content : ""}
+          {tileData.content}
         </span>
       )}
 
-      {/* Completion criteria display (for wiki or custom with targets) */}
+      {/* If there's a target (for custom or wiki) we show progress at the bottom */}
       {tileData.target > 0 && (
         <div className="absolute bottom-2 w-full text-center text-[#3b2f25]">
           {`${formatNumber(tileData.progress)}/${formatNumber(
@@ -346,6 +373,8 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           </div>
         </div>
       )}
+
+      {/* If editing, open the TileEditor with defaultMode */}
       {isEditing && (
         <TileEditor
           initialData={tileData}
@@ -353,6 +382,7 @@ const Tile = ({ id, data: initialData, onTileUpdate, osrsData }) => {
           onSave={handleSave}
           onCancel={handleCancel}
           osrsData={osrsData}
+          defaultMode={tileData.mode} // This ensures correct tab is selected
         />
       )}
     </div>
