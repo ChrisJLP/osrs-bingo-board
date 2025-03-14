@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import LoadingSpinner from "./LoadingSpinner";
 
 const WikiSearch = ({ onSelect }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!query) {
@@ -10,6 +12,7 @@ const WikiSearch = ({ onSelect }) => {
       return;
     }
     const fetchResults = async () => {
+      setLoading(true);
       try {
         const res = await fetch(
           `https://oldschool.runescape.wiki/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(
@@ -27,6 +30,7 @@ const WikiSearch = ({ onSelect }) => {
       } catch (error) {
         console.error("Error fetching OSRS Wiki search results:", error);
       }
+      setLoading(false);
     };
 
     const timeoutId = setTimeout(() => {
@@ -50,36 +54,35 @@ const WikiSearch = ({ onSelect }) => {
   };
 
   return (
-    <div>
+    <div className="relative">
       <input
         type="text"
         placeholder="Search OSRS Wiki..."
         value={query}
         onChange={handleInputChange}
-        className="border border-[#8b6d48] rounded-lg p-1 mb-2 w-full text-[#3b2f25]"
+        className="border border-[#8B5A2B] rounded-lg p-1 w-full text-[#362511]"
       />
+      {loading && (
+        <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+          <LoadingSpinner size="w-4 h-4" />
+        </div>
+      )}
       {results.length > 0 && (
-        <ul style={{ listStyle: "none", padding: 0 }}>
+        <ul className="absolute bg-white border border-[#8B5A2B] rounded mt-1 w-full z-10">
           {results.map((result) => (
             <li
               key={result.pageid}
               onClick={() => handleSelect(result)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                padding: "4px",
-                cursor: "pointer",
-              }}
+              className="flex items-center gap-2 p-1 cursor-pointer hover:bg-gray-100"
             >
               {result.thumbnail && (
                 <img
                   src={result.thumbnail.source}
                   alt={result.title}
-                  style={{ width: "20px", height: "20px" }}
+                  className="w-5 h-5"
                 />
               )}
-              <span className="text-[#3b2f25]">{result.title}</span>
+              <span className="text-[#362511]">{result.title}</span>
             </li>
           ))}
         </ul>

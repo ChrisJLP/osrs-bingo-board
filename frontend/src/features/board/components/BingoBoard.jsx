@@ -5,6 +5,7 @@ import TemplateBoardModal from "./templateBoardModal";
 import BoardControls from "./BoardControls";
 import BoardGrid from "./BoardGrid";
 import useBingoBoardLogic from "../hooks/useBingoBoardLogic";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const BingoBoard = () => {
   const {
@@ -52,7 +53,10 @@ const BingoBoard = () => {
     createTemplateBoard,
   } = useBingoBoardLogic();
 
-  // New state to control the display of "Data Cached"
+  // Loading states for different API events:
+  const [loadingOSRS, setLoadingOSRS] = useState(false);
+  const [loadingSave, setLoadingSave] = useState(false);
+  const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [showDataCached, setShowDataCached] = useState(false);
 
   useEffect(() => {
@@ -78,15 +82,34 @@ const BingoBoard = () => {
     setShowTemplateModal(true);
   };
 
+  const handleUpdateOSRS = async () => {
+    setLoadingOSRS(true);
+    await updateOsrsData();
+    setLoadingOSRS(false);
+    setShowDataCached(true);
+    setTimeout(() => {
+      setShowDataCached(false);
+    }, 7000);
+  };
+
+  const handleConfirmSave = async () => {
+    setLoadingSave(true);
+    await confirmSave();
+    setLoadingSave(false);
+  };
+
+  const handleConfirmTemplate = async () => {
+    setLoadingTemplate(true);
+    await createTemplateBoard();
+    setLoadingTemplate(false);
+  };
+
   return (
     <div className="flex flex-col items-center p-4 text-[#362511]">
-      {/* Title (centered) */}
       <h1 className="text-2xl font-bold text-center mb-4">{boardTitle}</h1>
 
-      {/* Row with OSRS Username (left) + Undo/Redo (right) */}
       <div className="w-full max-w-[700px] mx-auto flex flex-col mb-4">
         <div className="flex items-end justify-between">
-          {/* Left side: OSRS username */}
           <div className="flex flex-col">
             <label className="font-semibold mb-1" htmlFor="osrsUsername">
               OSRS Username:
@@ -102,24 +125,17 @@ const BingoBoard = () => {
                 autoComplete="off"
               />
               <button
-                onClick={async () => {
-                  await updateOsrsData();
-                  setShowDataCached(true);
-                  setTimeout(() => {
-                    setShowDataCached(false);
-                  }, 7000);
-                }}
+                onClick={handleUpdateOSRS}
                 className="bg-[#D4AF37] text-[#362511] px-3 py-1 rounded-lg transition hover:bg-[#C59C2A] hover:scale-105"
               >
                 Update
               </button>
+              {loadingOSRS && <LoadingSpinner size="w-4 h-4" />}
               {showDataCached && (
                 <span className="text-green-600">Data Cached</span>
               )}
             </div>
           </div>
-
-          {/* Right side: Undo/Redo */}
           <div className="flex space-x-2">
             <button
               onClick={undo}
@@ -137,7 +153,6 @@ const BingoBoard = () => {
         </div>
       </div>
 
-      {/* Board and Controls */}
       <div className="relative w-full max-w-[1200px] mb-4">
         <div className="mx-auto" style={{ width: "700px" }}>
           <BoardGrid
@@ -160,7 +175,6 @@ const BingoBoard = () => {
         </div>
       </div>
 
-      {/* Save/Template Buttons */}
       <div className="flex space-x-2 justify-center">
         <button
           onClick={() => setShowSaveModal(true)}
@@ -168,18 +182,19 @@ const BingoBoard = () => {
         >
           {isExistingBoard ? "Update board" : "Save Board"}
         </button>
+        {loadingSave && <LoadingSpinner size="w-6 h-6" />}
         <button
           onClick={handleTemplateClick}
           className="bg-[#D4AF37] text-[#362511] px-4 py-2 rounded-lg transition hover:bg-[#C59C2A] hover:scale-105"
         >
           Use board as a template
         </button>
+        {loadingTemplate && <LoadingSpinner size="w-6 h-6" />}
       </div>
 
-      {/* Modals */}
       <SaveBoardModal
         isOpen={showSaveModal}
-        onConfirm={confirmSave}
+        onConfirm={handleConfirmSave}
         onCancel={() => setShowSaveModal(false)}
         boardName={boardName}
         setBoardName={setBoardName}
@@ -189,6 +204,7 @@ const BingoBoard = () => {
         setBoardPassword={setBoardPassword}
         errorMessage={error}
         isExistingBoard={isExistingBoard}
+        loading={loadingSave}
       />
       <FindBoardModal
         isOpen={showFindModal}
@@ -200,7 +216,7 @@ const BingoBoard = () => {
       />
       <TemplateBoardModal
         isOpen={showTemplateModal}
-        onConfirm={createTemplateBoard}
+        onConfirm={handleConfirmTemplate}
         onCancel={() => setShowTemplateModal(false)}
         boardName={templateBoardName}
         setBoardName={setTemplateBoardName}
@@ -211,6 +227,7 @@ const BingoBoard = () => {
         osrsUsername={templateOsrsUsername}
         setOsrsUsername={setTemplateOsrsUsername}
         errorMessage={error}
+        loading={loadingTemplate}
       />
     </div>
   );
